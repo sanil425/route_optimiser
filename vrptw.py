@@ -3,6 +3,12 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from gpt_interface import get_data
+import googlemaps
+from maps import get_time_matrix
+
+
+GOOGLEMAPS_API_KEY = "AIzaSyA_mnq-8XaTO8pH64EXolOrKjMnkK3dSqc"
+gmaps = googlemaps.Client(key=GOOGLEMAPS_API_KEY)
 
 
 def print_solution(data, manager, routing, solution):
@@ -37,7 +43,6 @@ def extract_route_text(data, manager, routing, solution):
     time_dimension = routing.GetDimensionOrDie("Time")
     route_text = ""
 
-    # Automated — use location_names from GPT
     location_names = data["location_names"]
     location_durations = data["location_durations"]
 
@@ -48,33 +53,58 @@ def extract_route_text(data, manager, routing, solution):
         index = routing.Start(vehicle_id)
         route_text += f"Driver {vehicle_id}:\n"
 
+        # Track departure_time from previous stop
+        prev_departure_time = None
+
+        is_first_stop = True
+
         while not routing.IsEnd(index):
             node = manager.IndexToNode(index)
             time_var = time_dimension.CumulVar(index)
             arrival_time = solution.Min(time_var)
 
-            # Format time as HH:MM
-            hours = arrival_time // 60
-            minutes = arrival_time % 60
+            departure_time = arrival_time + location_durations[node]
 
-            route_text += (
-                f"  - {location_names[node]} at {hours}:{minutes:02d} "
-                f"(stay {location_durations[node]} min)\n"
-            )
+            arr_hours = arrival_time // 60
+            arr_minutes = arrival_time % 60
+            dep_hours = departure_time // 60
+            dep_minutes = departure_time % 60
+
+            # Special handling for Home (depot)
+            if node == data["depot"]:
+                if is_first_stop:
+                    # First Home → starting point
+                    route_text += f"Starting from Home at {arr_hours}:{arr_minutes:02d}\n"
+                else:
+                    # Return to Home at end
+                    if prev_departure_time is not None:
+                        travel_time = arrival_time - prev_departure_time
+                        travel_hours = travel_time // 60
+                        travel_minutes = travel_time % 60
+                        route_text += (
+                            f"    Travel time to Home: {travel_hours}h {travel_minutes}m\n"
+                        )
+                    route_text += f"Returning Home at {arr_hours}:{arr_minutes:02d}\n"
+            else:
+                # Not depot → regular stop
+                if prev_departure_time is not None:
+                    travel_time = arrival_time - prev_departure_time
+                    travel_hours = travel_time // 60
+                    travel_minutes = travel_time % 60
+                    route_text += (
+                        f"    Travel time to {location_names[node]}: {travel_hours}h {travel_minutes}m\n"
+                    )
+
+                route_text += (
+                    f"  - {location_names[node]}: {arr_hours}:{arr_minutes:02d} to {dep_hours}:{dep_minutes:02d} "
+                    f"(stay {location_durations[node]} min)\n"
+                )
+
+            # Update tracker
+            prev_departure_time = departure_time
+            is_first_stop = False
 
             index = solution.Value(routing.NextVar(index))
-
-        # Add last location (depot)
-        node = manager.IndexToNode(index)
-        time_var = time_dimension.CumulVar(index)
-        arrival_time = solution.Min(time_var)
-        hours = arrival_time // 60
-        minutes = arrival_time % 60
-
-        route_text += (
-            f"  - {location_names[node]} at {hours}:{minutes:02d} "
-            f"(stay {location_durations[node]} min)\n"
-        )
 
     return route_text
 
@@ -89,20 +119,23 @@ def get_summary_from_gpt(route_text):
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
     prompt = f"""
-              Here is an optimized route:
+    Here is an optimized route, structured as a full schedule:
 
-              {route_text}
+    {route_text}
 
-              Please write a friendly, structured summary for the user. 
+    Please write a **detailed planner-style summary** for the user.
 
-              Clearly state:
-              - The order of stops (use the real names provided).
-              - The approximate arrival time at each stop.
-              - When the user will return to the Depot / Home.
+    For each step, clearly state:
+    - The exact **departure time** from Home or from the previous stop.
+    - The **travel time** to the next location (in hours and minutes).
+    - The **arrival time** at the next location.
+    - The **time range spent at that location** (from HH:MM to HH:MM).
+    - Repeat this structure for the entire day, until returning Home.
 
-              Only mention the real names of places (do not say "Order 1", "Order 2", etc).
-              Please write in bullet points but DO NOT use Markdown formatting (no **bold**).
-              """
+    Be explicit about **when the user leaves each location** and **how long the travel is** to the next one. The output should be like a personal schedule the user can follow.
+
+    Only mention the **real names of locations** (do not say "Order 1", "Order 2", etc). Do NOT use Markdown formatting (no bold, no bullet points). Write it as clear text the user can read and follow.
+    """
 
     response = openai.chat.completions.create(
         model="gpt-4o",
@@ -122,28 +155,30 @@ def main():
     """Solve the VRP with time windows."""
     # Instantiate the data problem.
     user_instruction = """
-    I want to plan my day with the following constraints
+    I want to plan my day with the following constraints:
 
-    - Go to the cricket store to pick something up which is open from 1 PM to 11 PM. Duration of time spent there is 10 minutes.
-    - Enjoy a day at the beach sometime between 12 PM and 7 PM. Duration of time spend there is 4 hours.
-    - Eat Dosa Grill for dinner sometime between 5 PM and 9 PM. Duration of time spend there is 1.5 hours.
+    - I want to leave from home at 370 W Lancaster Ave, Haverford, PA at 10 AM. I would like to return as early as possible.
+    - Go to the cricket store at 4440 Bordentown Ave, Old Bridge, NJ. It's open from 1 PM to 11 PM, and I will spend about 10 minutes there.
+    - Enjoy a day at the beach at Bradshaw Beach, located at 1 Washington Avenue, Point Pleasant Beach, NJ, sometime between 12 PM and 7 PM. I want to spend 4 hours there.
+    - Eat dinner at Dosa Grill, 1980 State Route 27 Ste 3, North Brunswick, NJ between 5 PM and 9 PM. I will stay for 1.5 hours.
 
-    I am starting from home at 8:30 AM, and want to return home as early as possible.
-
-    Please compute the best route considering these times.
-
-    Travel times (inverse is the same):
-
-    Home to Cricket Store: 1 hour 20 minutes
-    Home to Beach: 1 hour 12 minutes
-    Home to Dosa Grill: 54 minutes
-    Cricket Store to Beach: 39 minutes
-    Cricket Store to Dosa Grill: 30 minutes
-    Beach to Dosa Grill: 41 minutes
-    
+    Please plan the most efficient route for the day considering these constraints.
     """
 
     data = get_data(user_instruction)
+
+    # print checking
+    print("GPT location names:", data["location_names"])
+    print("GPT location durations:", data["location_durations"])
+    print("GPT time windows:", data["time_windows"])
+
+    location_names = data["location_names"]
+    if not location_names:
+        print("Error: GPT did not return location_names. Please check your SYSTEM_PROMPT or user instruction.")
+        return
+
+    time_matrix = get_time_matrix(location_names, gmaps)
+    data["time_matrix"] = time_matrix
 
     # Create the routing index manager.
     manager = pywrapcp.RoutingIndexManager(
@@ -225,4 +260,4 @@ def main():
         print("\n")
 
 if __name__ == "__main__":
-    main()
+    main()  
