@@ -335,7 +335,6 @@ def get_summary_from_gpt(route_text):
 
 
 
-
 def main():
     user_instruction = load_user_instruction('user_instruction_scenarios.txt', 'After Work Groceries')
     data = get_data(user_instruction)
@@ -389,28 +388,42 @@ def main():
         time_dimension.CumulVar(start_idx).SetRange(*data["depot_departure_window"])
         time_dimension.CumulVar(end_idx).SetRange(*data["depot_return_window"])
 
-    for i in range(data["num_vehicles"]):
-        routing.AddVariableMinimizedByFinalizer(time_dimension.CumulVar(routing.Start(i)))
-        routing.AddVariableMinimizedByFinalizer(time_dimension.CumulVar(routing.End(i)))
+    # OPTIMIZED OBJECTIVE → minimize total journey time (end - start)
+    start_time = time_dimension.CumulVar(routing.Start(0))
+    end_time = time_dimension.CumulVar(routing.End(0))
 
+    # Maximize start time (leave as late as possible)
+    routing.AddVariableMaximizedByFinalizer(start_time)
+
+    # Minimize end time (finish as early as possible)
+    routing.AddVariableMinimizedByFinalizer(end_time)
+
+    print("INFO: Optimizing for shortest total journey time (end - start)")
+
+    # Solve
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
 
     solution = routing.SolveWithParameters(search_parameters)
 
     if solution:
+        # Debug: print optimized start/end
+        print("Optimized start time (min from midnight):", solution.Min(start_time))
+        print("Optimized end time (min from midnight):", solution.Min(end_time))
+        print("Total journey time (min):", solution.Min(end_time) - solution.Min(start_time))
+
+        # Extract route text
         route_text = extract_route_text(data, manager, routing, solution)
 
-        # build visit order
+        # Build visit order
         visit_order = []
-
-        index = routing.Start(0) # vehicle id = 0
+        index = routing.Start(0)  # vehicle id = 0
         while not routing.IsEnd(index):
             node_index = manager.IndexToNode(index)
             visit_order.append(node_index)
             index = solution.Value(routing.NextVar(index))
 
-        # create map
+        # Create map
         visualize_route(
             data["location_addresses"],
             visit_order,
@@ -420,17 +433,16 @@ def main():
             data["time_matrix"],
             data["arrival_departure_info"],
             return_to_start=True,
-            map_style='CartoDB.Voyager', 
+            map_style='CartoDB.Voyager',
             api_key=GOOGLEMAPS_API_KEY
         )
 
-        #print_solution(data, manager, routing, solution)
-        #print("Route text:", route_text)
-        
+        # GPT summary
         summary = get_summary_from_gpt(route_text)
         print("AI summary of route:")
         print(summary)
         print("\n")
+
 
 
 # helpers

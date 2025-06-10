@@ -9,12 +9,12 @@ I want to plan my day with the following constraints:
 
 
 
-
 === Scenario: After Work Groceries ===
 I want to run the following errands:
 
-- I want to leave from Home (19 Hannum Drive, Ardmore, PA) anytime between 5:00 PM and 5:30 PM.
-- Pick up my friend from Ardmore Station (39 Station Rd, Ardmore, PA), must arrive exactly at 5:45 PM and stop for 3 minutes.
+- I want to leave from Home (19 Hannum Drive, Ardmore, PA) as late as possible — that is, please compute the latest time I can leave while still being able to complete all the stops and return home on time.
+- You should find the latest feasible departure time from Home that allows a valid route.
+- I must pick up my friend from Ardmore Station (39 Station Rd, Ardmore, PA), exactly at 5:45 PM, and stop for 3 minutes.
 - Go to Trader Joe's (112 Coulter Ave, Ardmore, PA). Will shop for 10 minutes.
 - Go to Giant (70 E Wynnewood Rd, Wynnewood, PA). Will shop for 20 minutes.
 - Return home as quick as possible.
