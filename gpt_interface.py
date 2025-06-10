@@ -16,22 +16,18 @@ The problem may involve deliveries, errands, personal commitments, or visits to 
 You must output only a JSON object with the following fields:
 
 - num_vehicles (int)
-- depot_time_window (list of 2 ints [start_min, end_min])  
-    # start_min and end_min represent the earliest and latest time (in minutes since midnight) the user is available to start and return home.
-    # If the user specifies a range of time they are free to leave from Home (e.g. "I can leave between 9 AM and 11 AM"), use depot_time_window = [540, 660].
-    # If the user specifies an exact desired start time (e.g. "I want to start at 10 AM"), set depot_time_window = [600, 600].
-- time_windows (list of [start_min, end_min], depot first)  
-    # time windows for all locations, depot first
-- depot (int index)  
-    # index of depot location
-- location_names (list of strings): full addresses or names geocodable by Google Maps, depot first
-- location_durations (list of ints): duration (in minutes) to be spent at each location (depot first, usually 0 for depot)
+- depot (int)  # index of the starting/ending location (usually home)
+- depot_departure_window (list of 2 ints): [start_min, end_min] when the user is available to leave the origin
+- depot_return_window (list of 2 ints): [start_min, end_min] when the user is available to return to the origin
+- time_windows (list of [start_min, end_min]): time windows for all locations, including depot first
+- location_names (list of strings): names of all locations, for user-friendly summaries
+- location_addresses (list of strings): addresses for all locations (Google Maps geocodable), must match order
+- location_durations (list of ints): duration in minutes to be spent at each location (0 for depot)
 
 Rules:
 - The "Home" or "Depot" should always be location index 0.
-- All lists must have the same length.
-- The order of locations in location_names, time_windows, and location_durations must match exactly.
-- Do NOT generate time_matrix. Travel times will be computed separately.
+- All lists must have the same length and order.
+- Use location_names for friendly output and location_addresses for travel time calculations.
 
 Respond ONLY with valid JSON. No extra text.
 
@@ -40,6 +36,8 @@ When later asked to summarize a route, match the voice and tone to the user's pe
 - If referring to a driver or 3rd person, use "the driver", "the route", etc.
 - Adjust tone to match the context of the request.
 """
+
+
 
 
 

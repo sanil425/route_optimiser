@@ -1,0 +1,22 @@
+=== Scenario: Beach Day ===
+I want to plan my day with the following constraints:
+
+- I want to leave from Home (370 W Lancaster Ave, Haverford, PA) at 11 AM.
+- Go to the cricket store (4440 Bordentown Ave, Old Bridge, NJ), which is from 1 PM to 11 PM, and I will spend 10 minutes there.
+- Enjoy time at the beach at Bradshaw Beach (1 Washington Avenue, Point Pleasant Beach, NJ), for 4 hours sometime between 12 PM and 7 PM. 
+- Eat dinner at Dosa Grill (1980 State Route 27 Ste 3, North Brunswick, NJ), for 1.5 hours. The restaurant is open from 5 PM and 9 PM. 
+- Return home as early as possible.
+
+
+
+
+=== Scenario: After Work Groceries ===
+I want to run the following errands:
+
+- I want to leave from Home (19 Hannum Drive, Ardmore, PA) anytime between 5:00 PM and 5:30 PM.
+- Pick up my friend from Ardmore Station (39 Station Rd, Ardmore, PA), must arrive exactly at 5:45 PM and stop for 3 minutes.
+- Go to Trader Joe's (112 Coulter Ave, Ardmore, PA). Will shop for 10 minutes.
+- Go to Giant (70 E Wynnewood Rd, Wynnewood, PA). Will shop for 20 minutes.
+- Return home as quick as possible.
+
+

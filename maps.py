@@ -43,3 +43,19 @@ def get_time_matrix(address_list, gmaps_client):
     return time_matrix
 
 
+def get_distance_matrix(location_addresses, gmaps):
+    n = len(location_addresses)
+    distance_matrix = [[0] * n for _ in range(n)]
+
+    for i in range(n):
+        origins = [location_addresses[i]]
+        destinations = location_addresses
+
+        response = gmaps.distance_matrix(origins, destinations, mode='driving')
+
+        for j in range(n):
+            element = response['rows'][0]['elements'][j]
+            distance_in_km = element['distance']['value'] / 1000  # meters → km
+            distance_matrix[i][j] = distance_in_km
+
+    return distance_matrix
