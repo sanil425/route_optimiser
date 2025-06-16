@@ -336,7 +336,7 @@ def get_summary_from_gpt(route_text):
 
 
 def main():
-    user_instruction = load_user_instruction('user_instruction_scenarios.txt', 'After Work Groceries')
+    user_instruction = load_user_instruction('user_instruction_scenarios.txt', 'Beach Day')
     data = get_data(user_instruction)
     check_depot(data) 
 
@@ -382,11 +382,34 @@ def main():
         time_dimension.CumulVar(index).SetRange(window[0], window[1])
 
     depot_idx = data["depot"]
+    # Set depot time windows
     for vehicle_id in range(data["num_vehicles"]):
         start_idx = routing.Start(vehicle_id)
         end_idx = routing.End(vehicle_id)
         time_dimension.CumulVar(start_idx).SetRange(*data["depot_departure_window"])
         time_dimension.CumulVar(end_idx).SetRange(*data["depot_return_window"])
+
+    # Soft upper bound on end time → encourage shorter journey
+    time_dimension.SetCumulVarSoftUpperBound(routing.End(0), 1439, 1000)
+
+    # Add precedence constraints if any
+    precedence_constraints = data.get("precedence_constraints", [])
+    if precedence_constraints:
+        print(f"INFO: Applying precedence constraints: {precedence_constraints}")
+
+        for from_name, to_name in precedence_constraints:
+            from_idx = data["location_names"].index(from_name)
+            to_idx = data["location_names"].index(to_name)
+
+            from_index = manager.NodeToIndex(from_idx)
+            to_index = manager.NodeToIndex(to_idx)
+
+            routing.solver().Add(
+                time_dimension.CumulVar(from_index) + data["location_durations"][from_idx]
+                <= time_dimension.CumulVar(to_index)
+            )
+
+
 
     # OPTIMIZED OBJECTIVE → minimize total journey time (end - start)
     start_time = time_dimension.CumulVar(routing.Start(0))
@@ -398,19 +421,34 @@ def main():
     # Minimize end time (finish as early as possible)
     routing.AddVariableMinimizedByFinalizer(end_time)
 
-    print("INFO: Optimizing for shortest total journey time (end - start)")
+
+
+    # === DEBUG PRINT: check key parameters ===
+    print(f"\n--- DEBUG: Checking parameters before solving ---")
+    print(f"Depot departure window: {data['depot_departure_window']}")
+    print(f"Depot return window: {data['depot_return_window']}")
+
+    print(f"\nTime windows:")
+    for name, window in zip(data["location_names"], data["time_windows"]):
+        open_h, open_m = divmod(window[0], 60)
+        close_h, close_m = divmod(window[1], 60)
+        print(f"  {name}: {open_h:02d}:{open_m:02d} → {close_h:02d}:{close_m:02d}")
+
+    print(f"\nPrecedence constraints: {precedence_constraints}")
+    print(f"--- END DEBUG ---\n")
 
     # Solve
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
 
     solution = routing.SolveWithParameters(search_parameters)
-
-    if solution:
+    if not solution:
+        print("no sol found, constraints to tight")
+    else:
         # Debug: print optimized start/end
-        print("Optimized start time (min from midnight):", solution.Min(start_time))
-        print("Optimized end time (min from midnight):", solution.Min(end_time))
-        print("Total journey time (min):", solution.Min(end_time) - solution.Min(start_time))
+        #print("Optimized start time (min from midnight):", solution.Min(start_time))
+        #print("Optimized end time (min from midnight):", solution.Min(end_time))
+        #print("Total journey time (min):", solution.Min(end_time) - solution.Min(start_time))
 
         # Extract route text
         route_text = extract_route_text(data, manager, routing, solution)

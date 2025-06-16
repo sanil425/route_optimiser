@@ -6,7 +6,6 @@ import json
 load_dotenv()  # load variables from .env
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# SYSTEM_PROMPT defines role and required output format
 SYSTEM_PROMPT = """
 You are an assistant that helps plan optimal driving routes for users.  
 
@@ -24,14 +23,22 @@ Your output must be a **pure JSON object** with these fields:
 - depot: integer → index of the depot (origin) → must always be 0
 - depot_departure_window: pair (earliest_departure_time, latest_departure_time), in minutes from midnight
 - depot_return_window: pair (earliest_return_time, latest_return_time), in minutes from midnight
+- precedence_constraints: list of pairs of strings.  
+  If the user says that a stop "must be the first stop" or "first do X", generate precedence_constraints that place this stop before ALL other non-Home stops.  
+  Example: if Stop A must be first and other stops are [Stop B, Stop C], generate: "precedence_constraints": [["Stop A", "Stop B"], ["Stop A", "Stop C"]]
+  If the user says "Then do X", generate precedence_constraints between the previous stop and X.  
+  Always include "precedence_constraints", even if empty.
 - num_vehicles: always set to 1
 
 Important behavior and parsing rules:
 
-**Depot (Home)**:
+**Depot (Origin)**:
 - The first stop must always be the depot (origin).
 - If the user says "I want to leave from Home (address) at TIME", set depot = 0 and set depot_departure_window = (TIME, TIME).
 - If no leave time is given, assume a default wide window (e.g. (0, 1439)).
+- If the user says "leave as late as possible", do NOT generate an exact single time.  
+  Generate a flexible window — e.g. (latest feasible time minus 20 min, latest feasible time).  
+  This allows the solver flexibility to choose a feasible departure time.
 - depot_return_window should normally be wide (e.g. (0, 1439)), unless user specifies otherwise (e.g. "return home by 5 PM").
 
 **Handling time window phrases**:
@@ -39,6 +46,7 @@ Important behavior and parsing rules:
 - If the instruction says "between X and Y", generate a time window (X → Y) accordingly.
 - If the instruction says "open from X to Y", generate a time window (X → Y).
 - If no time is specified for a stop, assume a default wide window (e.g. (0, 1439)).
+- Be very precise when parsing time expressions. "5:45 PM" must be parsed as 17:45 (NOT 17:25). Use strict time parsing.
 
 **Handling durations**:
 - If the instruction says "stay for N minutes" or "stop for N minutes", set location_duration = N.
@@ -47,22 +55,8 @@ Important behavior and parsing rules:
 
 **Handling special phrases**:
 - "Return home as early as possible" → set depot_return_window = (0, 1439).
-- "Must be the first thing done" → this means that the stop must appear early in the route and you should use an exact time window if possible.
+- "Must be the first thing done" → this means that the stop must appear early in the route and you should use an exact time window if possible, and precedence_constraints must be generated to enforce this stop occurs before all others (except Home).
 - "Pick up my friend at X" → treat as "arrive exactly at X".
-
-**Precise time conversion**:
-You must precisely and correctly convert times to minutes from midnight:
-
-- 5:45 PM → 17 * 60 + 45 = 1065 minutes.
-- 5:25 PM → 17 * 60 + 25 = 1045 minutes.
-- 9:00 AM → 9 * 60 = 540 minutes.
-- 12:00 PM → 12 * 60 = 720 minutes.
-- 12:00 AM → 0 minutes.
-
-CHECK YOUR MATH CAREFULLY. Do not guess or approximate times.  
-If the user says "5:45 PM", your time_window must be (1065, 1065).  
-
-If unsure about time parsing, output an error instead of guessing.
 
 **Output format**:
 - You must output a pure JSON object.  
@@ -87,6 +81,7 @@ Example correct output:
     "depot": 0,
     "depot_departure_window": [660, 660],
     "depot_return_window": [0, 1439],
+    "precedence_constraints": [],
     "num_vehicles": 1
 }
 
@@ -94,11 +89,7 @@ Be precise, consistent, and unambiguous in your parsing.
 When in doubt, prefer to use exact times rather than wide windows.
 
 Your job is to help the solver compute an accurate and realistic driving plan based on the user's natural language instruction.
-
-
 """
-
-
 
 
 
@@ -121,13 +112,13 @@ def get_data(user_instruction):
   # convert to python dict
   data = json.loads(reply_text)
 
-  print("\nDEBUG: Time windows used by solver:")
+  #print("\nDEBUG: Time windows used by solver:")
   for name, window in zip(data["location_names"], data["time_windows"]):
     window_open_hr = window[0] // 60
     window_open_min = window[0] % 60
     window_close_hr = window[1] // 60
     window_close_min = window[1] % 60
-    print(f"{name}: {window_open_hr}:{window_open_min:02d} → {window_close_hr}:{window_close_min:02d}")
+    #print(f"{name}: {window_open_hr}:{window_open_min:02d} → {window_close_hr}:{window_close_min:02d}")
   return data
 
 def print_data(data):
