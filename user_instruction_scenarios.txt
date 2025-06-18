@@ -7,6 +7,8 @@ I want to plan my day with the following constraints:
 - Eat dinner at Dosa Grill (1980 State Route 27 Ste 3, North Brunswick, NJ), for 1.5 hours. The restaurant is open from 1700 hrs and 2100 hrs.
 - Return home as early as possible.
 
+
+
 === Scenario: After Work Groceries ===
 I want to run the following errands:
 
@@ -15,11 +17,13 @@ I want to run the following errands:
 - Stop at CVS (119 E Lancaster Ave, Ardmore, PA) for 10 minutes. It's open from 0900 hrs to 2100 hrs.
 - Return home.
 
-=== Scenario: Jersey Run ===
+
+
+=== Scenario: No Return ===
 I need to complete the following trip:
 
-- Leave from Home (370 W Lancaster Ave, Haverford, PA) around 0900 hrs.
+- Leave from Home (370 W Lancaster Ave, Haverford, PA) at anytime.
 - Visit Princeton University (Princeton, NJ) for a quick stop between 1000 hrs and 1100 hrs; I will spend 20 minutes there.
 - Go to Mitsuwa Marketplace (595 River Rd, Edgewater, NJ) between 1130 hrs and 1330 hrs, and spend 1 hour there.
 - Grab lunch at Szechuan Delight (19 Doyers St, New York, NY), which is open between 1200 hrs and 1500 hrs; spend 45 minutes.
-- End the trip at Columbia University (116th and Broadway, New York, NY), and spend 1 hour there between 1400 hrs and 1700 hrs.
+- End the trip at Columbia University (116th and Broadway, New York, NY).

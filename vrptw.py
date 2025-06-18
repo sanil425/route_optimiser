@@ -88,6 +88,8 @@ def visualize_route(
 
     # Add markers
     for stop_num, node in enumerate(visit_order):
+        if stop_num == len(visit_order) - 1 and return_to_start:
+            continue
         arrival, departure = time_lookup.get(node, ("?", "?"))
         popup = f"""<div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>
         <b style="font-size: 16px;">{location_names[node]}</b><br>
@@ -222,12 +224,10 @@ def extract_route_text(data, manager, routing, solution):
 
             if node == data["depot"]:
                 if is_first_stop:
-                    # First Depot → Starting point
                     route_text += (
                         f"Departure from origin, {location_addresses[node]}, at {arr_hours}:{arr_minutes:02d}.\n\n"
                     )
                 else:
-                    # Return to Depot at end
                     if prev_departure_time is not None:
                         travel_time = arrival_time - prev_departure_time
                         travel_hours = travel_time // 60
@@ -239,7 +239,6 @@ def extract_route_text(data, manager, routing, solution):
                             f"Your total journey was {arrival_time} minutes.\n"
                         )
             else:
-                # Not Depot → Regular stop
                 if prev_departure_time is not None:
                     travel_time = arrival_time - prev_departure_time
                     travel_hours = travel_time // 60
@@ -249,23 +248,34 @@ def extract_route_text(data, manager, routing, solution):
                         f"Travel time is {travel_hours} hours and {travel_minutes} minutes. "
                         f"You will arrive at {location_names[node]} at {arr_hours}:{arr_minutes:02d}.\n"
                     )
-
-                # Stay at location
                 route_text += (
                     f"Stay at {location_names[node]} for {location_durations[node]} minutes "
                     f"from {arr_hours}:{arr_minutes:02d} to {dep_hours}:{dep_minutes:02d}. "
                     f"Departure from {location_names[node]} at {dep_hours}:{dep_minutes:02d}.\n\n"
                 )
 
-            # Update tracker
             prev_departure_time = departure_time
             is_first_stop = False
-
             index = solution.Value(routing.NextVar(index))
 
-    data["arrival_departure_info"] = arrival_departure_info
+        # 🔧 Handle final stop (likely return to depot)
+        if routing.IsEnd(index):
+            node = manager.IndexToNode(index)
+            arrival_time = solution.Min(time_dimension.CumulVar(index))
+            arr_hours, arr_minutes = divmod(arrival_time, 60)
+            arrival_time_str = f"{arr_hours}:{arr_minutes:02d}"
 
+            # Add to arrival_departure_info
+            arrival_departure_info.append((node, arrival_time_str, arrival_time_str))
+
+            # Append final message
+            route_text += (
+                f"Travel back to origin. You will arrive back at your origin at {arrival_time_str}.\n"
+            )
+
+    data["arrival_departure_info"] = arrival_departure_info
     return route_text
+
 
 
 def get_summary_from_gpt(route_text):
@@ -320,11 +330,7 @@ def get_summary_from_gpt(route_text):
     reply_text = response.choices[0].message.content.strip()
     return reply_text
 
-
 def compute_trip_summary(data, visit_order, arrival_departure_info):
-    """
-    Computes summary statistics from the visit order and arrival/departure info.
-    """
     total_distance = 0
     total_travel_time = 0
     total_stop_time = 0
@@ -338,21 +344,39 @@ def compute_trip_summary(data, visit_order, arrival_departure_info):
     for idx in visit_order:
         total_stop_time += data["location_durations"][idx]
 
-    # Start and end time
-    arr_map = {node: arr for node, arr, _ in arrival_departure_info}
-    dep_map = {node: dep for node, _, dep in arrival_departure_info}
-    start_time = dep_map.get(data["depot"], "?")
-    end_time = arr_map.get(visit_order[-1], "?")
+    depot = data["depot"]
+    start_time = None
+    end_time = None
+
+    # ✅ Get first departure from depot
+    for node, arr, dep in arrival_departure_info:
+        if node == depot:
+            start_time = dep
+            break
+
+    # ✅ Get last arrival at final node
+    final_node = visit_order[-1]
+    for node, arr, dep in reversed(arrival_departure_info):
+        if node == final_node:
+            end_time = arr
+            break
+
+    print("\n🧪 DEBUG: arrival_departure_info")
+    for entry in arrival_departure_info:
+        print(entry)
 
     return {
         "total_stops": len(visit_order) - 1,
         "total_distance": total_distance,
         "total_travel_time": total_travel_time,
         "total_stop_time": total_stop_time,
-        "start_time": start_time,
-        "end_time": end_time,
-        "return_to_start": visit_order[-1] == data["depot"]
+        "start_time": start_time or "?",
+        "end_time": end_time or "?",
+        "return_to_start": final_node == depot
     }
+
+
+
 
 
 def solve_vrptw(data):
@@ -455,13 +479,15 @@ def run_vrptw(instruction):
 
     return "route_map.html", summary_text, trip_summary
 
+
+
 def main():
-    scenario_name = "After Work Groceries"
+    scenario_name = "No Return"
     instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
 
-    print(f"\n=== Scenario: {scenario_name} ===")
-    print(instruction)
-    print("\nSolving route...\n")
+    #print(f"\n=== Scenario: {scenario_name} ===")
+    #print(instruction)
+    #print("\nSolving route...\n")
 
     try:
         map_file, summary, trip_summary = run_vrptw(instruction)
