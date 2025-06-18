@@ -1,7 +1,25 @@
-=== Scenario: Streamlit Run ===
+=== Scenario: Beach Day ===
+I want to plan my day with the following constraints:
+
+- I want to leave from Home (370 W Lancaster Ave, Haverford, PA) at 1100 hrs.
+- Go to the cricket store (4440 Bordentown Ave, Old Bridge, NJ), which is from 1300 hrs to 2300 hrs, and I will spend 10 minutes there.
+- Enjoy time at the beach at Bradshaw Beach (1 Washington Avenue, Point Pleasant Beach, NJ), for 4 hours sometime between 1200 hrs and 1900 hrs. 
+- Eat dinner at Dosa Grill (1980 State Route 27 Ste 3, North Brunswick, NJ), for 1.5 hours. The restaurant is open from 1700 hrs and 2100 hrs.
+- Return home as early as possible.
+
+=== Scenario: After Work Groceries ===
 I want to run the following errands:
 
 - I want to leave from Home (19 Hannum Drive, Ardmore, PA) as late as possible to pick up my friend from Ardmore Station (39 Station Rd, Ardmore, PA), exactly at 1736 hrs, and stop for 3 minutes.
-- Go to Trader Joe's (112 Coulter Ave, Ardmore, PA). Will shop for 10 minutes. The shop is open from 1100 hrs to 2000 hrs.
-- Go to Giant (70 E Wynnewood Rd, Wynnewood, PA). Will shop for 20 minutes. The shop is open from 1000 hrs to 2100 hrs.
-- Return home as quick as possible.
+- Go grocery shopping at Trader Joe's (112 Coulter Ave, Ardmore, PA) for 25 minutes. It's open from 0800 hrs to 2100 hrs.
+- Stop at CVS (119 E Lancaster Ave, Ardmore, PA) for 10 minutes. It's open from 0900 hrs to 2100 hrs.
+- Return home.
+
+=== Scenario: Jersey Run ===
+I need to complete the following trip:
+
+- Leave from Home (370 W Lancaster Ave, Haverford, PA) around 0900 hrs.
+- Visit Princeton University (Princeton, NJ) for a quick stop between 1000 hrs and 1100 hrs; I will spend 20 minutes there.
+- Go to Mitsuwa Marketplace (595 River Rd, Edgewater, NJ) between 1130 hrs and 1330 hrs, and spend 1 hour there.
+- Grab lunch at Szechuan Delight (19 Doyers St, New York, NY), which is open between 1200 hrs and 1500 hrs; spend 45 minutes.
+- End the trip at Columbia University (116th and Broadway, New York, NY), and spend 1 hour there between 1400 hrs and 1700 hrs.

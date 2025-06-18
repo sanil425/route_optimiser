@@ -17,7 +17,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_36a25d074e7b24a7bc4d851670545516 {
+                #map_c1fad6fd2208ed0cce0e7e4e9f98a82b {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -54,19 +54,19 @@
 <body>
     
     
-            <div class="folium-map" id="map_36a25d074e7b24a7bc4d851670545516" ></div>
+            <div class="folium-map" id="map_c1fad6fd2208ed0cce0e7e4e9f98a82b" ></div>
         
 </body>
 <script>
     
     
-            var map_36a25d074e7b24a7bc4d851670545516 = L.map(
-                "map_36a25d074e7b24a7bc4d851670545516",
+            var map_c1fad6fd2208ed0cce0e7e4e9f98a82b = L.map(
+                "map_c1fad6fd2208ed0cce0e7e4e9f98a82b",
                 {
                     center: [40.0055418, -75.3017816],
                     crs: L.CRS.EPSG3857,
                     ...{
-  "zoom": 8,
+  "zoom": 10,
   "zoomControl": true,
   "preferCanvas": false,
 }
@@ -78,8 +78,8 @@
 
         
     
-            var tile_layer_94a60d9b1ccfac36ed52bd2d54aa1bb3 = L.tileLayer(
-                "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+            var tile_layer_500d00a857eeec6934c10108f19e8dfb = L.tileLayer(
+                "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
                 {
   "minZoom": 0,
   "maxZoom": 20,
@@ -95,7 +95,287 @@
             );
         
     
-            tile_layer_94a60d9b1ccfac36ed52bd2d54aa1bb3.addTo(map_36a25d074e7b24a7bc4d851670545516);
+            tile_layer_500d00a857eeec6934c10108f19e8dfb.addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
         
+    
+            var marker_efaf279fb9aa6951d92b79fb36347bc9 = L.marker(
+                [40.0055418, -75.3017816],
+                {
+}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+            var div_icon_df13fef4912db28417d74fc9b4a533d4 = L.divIcon({
+  "html": "\n                \u003cdiv style=\u0027background-color: green; color: white; border-radius: 50%;\n                            width: 30px; height: 30px; text-align: center; line-height: 30px;\n                            font-weight: bold; font-size: 14px;\u0027\u003e1\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+        var popup_522107e6cca9a6821c1a273cb7d9bfde = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_53f329413f33a7e953dfeeac6d436feb = $(`<div id="html_53f329413f33a7e953dfeeac6d436feb" style="width: 100.0%; height: 100.0%;"><div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>         <b style="font-size: 16px;">Home</b><br>         <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br><br>         <b>Arrival:</b> 17:32<br>         <b>Departure:</b> 17:32<br>         <b>Time Spent:</b> Depot / Home         </div></div>`)[0];
+                popup_522107e6cca9a6821c1a273cb7d9bfde.setContent(html_53f329413f33a7e953dfeeac6d436feb);
+            
+        
+
+        marker_efaf279fb9aa6951d92b79fb36347bc9.bindPopup(popup_522107e6cca9a6821c1a273cb7d9bfde)
+        ;
+
+        
+    
+    
+                marker_efaf279fb9aa6951d92b79fb36347bc9.setIcon(div_icon_df13fef4912db28417d74fc9b4a533d4);
+            
+    
+            var marker_ff03d278e8449338bef9e7cf1a5578a4 = L.marker(
+                [40.0083212, -75.2903651],
+                {
+}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+            var div_icon_39087269fd83472ab2b46ce60e96554d = L.divIcon({
+  "html": "\n                \u003cdiv style=\u0027background-color: red; color: white; border-radius: 50%;\n                            width: 30px; height: 30px; text-align: center; line-height: 30px;\n                            font-weight: bold; font-size: 14px;\u0027\u003e2\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+        var popup_67dc21991e0f22eb4823990a128043cc = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_70dd0be033a69f6df53e6d6917489db7 = $(`<div id="html_70dd0be033a69f6df53e6d6917489db7" style="width: 100.0%; height: 100.0%;"><div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>         <b style="font-size: 16px;">Ardmore Station</b><br>         <span style='font-size:13px'>39 Station Rd, Ardmore, PA</span><br><br>         <b>Arrival:</b> 17:36<br>         <b>Departure:</b> 17:39<br>         <b>Time Spent:</b> 3 minutes         </div></div>`)[0];
+                popup_67dc21991e0f22eb4823990a128043cc.setContent(html_70dd0be033a69f6df53e6d6917489db7);
+            
+        
+
+        marker_ff03d278e8449338bef9e7cf1a5578a4.bindPopup(popup_67dc21991e0f22eb4823990a128043cc)
+        ;
+
+        
+    
+    
+                marker_ff03d278e8449338bef9e7cf1a5578a4.setIcon(div_icon_39087269fd83472ab2b46ce60e96554d);
+            
+    
+            var marker_8f6d7ffe13f0ae06f5956504cbed23ef = L.marker(
+                [40.005847, -75.28693559999999],
+                {
+}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+            var div_icon_09e402eacee54e81d4c545b453e4f786 = L.divIcon({
+  "html": "\n                \u003cdiv style=\u0027background-color: red; color: white; border-radius: 50%;\n                            width: 30px; height: 30px; text-align: center; line-height: 30px;\n                            font-weight: bold; font-size: 14px;\u0027\u003e3\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+        var popup_208d05e7cbcc9610646cf181351eb092 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_6f95a7f0a9ec3aabfd5f3802047ade72 = $(`<div id="html_6f95a7f0a9ec3aabfd5f3802047ade72" style="width: 100.0%; height: 100.0%;"><div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>         <b style="font-size: 16px;">CVS</b><br>         <span style='font-size:13px'>119 E Lancaster Ave, Ardmore, PA</span><br><br>         <b>Arrival:</b> 17:40<br>         <b>Departure:</b> 17:50<br>         <b>Time Spent:</b> 10 minutes         </div></div>`)[0];
+                popup_208d05e7cbcc9610646cf181351eb092.setContent(html_6f95a7f0a9ec3aabfd5f3802047ade72);
+            
+        
+
+        marker_8f6d7ffe13f0ae06f5956504cbed23ef.bindPopup(popup_208d05e7cbcc9610646cf181351eb092)
+        ;
+
+        
+    
+    
+                marker_8f6d7ffe13f0ae06f5956504cbed23ef.setIcon(div_icon_09e402eacee54e81d4c545b453e4f786);
+            
+    
+            var marker_992c4aae039fd550ab3a8b1fcced8bae = L.marker(
+                [40.00724760000001, -75.28653059999999],
+                {
+}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+            var div_icon_d076d886cf409e5114fb8419c0487c5e = L.divIcon({
+  "html": "\n                \u003cdiv style=\u0027background-color: red; color: white; border-radius: 50%;\n                            width: 30px; height: 30px; text-align: center; line-height: 30px;\n                            font-weight: bold; font-size: 14px;\u0027\u003e4\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+        var popup_04feb7816e70dc258895f0cfe32373d6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c3c7fb6a69389ae1caa675ae1749014a = $(`<div id="html_c3c7fb6a69389ae1caa675ae1749014a" style="width: 100.0%; height: 100.0%;"><div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>         <b style="font-size: 16px;">Trader Joe's</b><br>         <span style='font-size:13px'>112 Coulter Ave, Ardmore, PA</span><br><br>         <b>Arrival:</b> 17:52<br>         <b>Departure:</b> 18:17<br>         <b>Time Spent:</b> 25 minutes         </div></div>`)[0];
+                popup_04feb7816e70dc258895f0cfe32373d6.setContent(html_c3c7fb6a69389ae1caa675ae1749014a);
+            
+        
+
+        marker_992c4aae039fd550ab3a8b1fcced8bae.bindPopup(popup_04feb7816e70dc258895f0cfe32373d6)
+        ;
+
+        
+    
+    
+                marker_992c4aae039fd550ab3a8b1fcced8bae.setIcon(div_icon_d076d886cf409e5114fb8419c0487c5e);
+            
+    
+            var marker_8f6e705d7df73185a6ed8e1cf4cc6b5c = L.marker(
+                [40.0055418, -75.3017816],
+                {
+}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+            var div_icon_4330adf178cdcb9c22ee7db8dab30dc8 = L.divIcon({
+  "html": "\n                \u003cdiv style=\u0027background-color: red; color: white; border-radius: 50%;\n                            width: 30px; height: 30px; text-align: center; line-height: 30px;\n                            font-weight: bold; font-size: 14px;\u0027\u003e5\u003c/div\u003e",
+  "className": "empty",
+});
+        
+    
+        var popup_7b9ad1c5d0a804559c779373cec27a3b = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_6422572d6d3b046fd9c76ea72b83daa1 = $(`<div id="html_6422572d6d3b046fd9c76ea72b83daa1" style="width: 100.0%; height: 100.0%;"><div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>         <b style="font-size: 16px;">Home</b><br>         <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br><br>         <b>Arrival:</b> 17:32<br>         <b>Departure:</b> 17:32<br>         <b>Time Spent:</b> Depot / Home         </div></div>`)[0];
+                popup_7b9ad1c5d0a804559c779373cec27a3b.setContent(html_6422572d6d3b046fd9c76ea72b83daa1);
+            
+        
+
+        marker_8f6e705d7df73185a6ed8e1cf4cc6b5c.bindPopup(popup_7b9ad1c5d0a804559c779373cec27a3b)
+        ;
+
+        
+    
+    
+                marker_8f6e705d7df73185a6ed8e1cf4cc6b5c.setIcon(div_icon_4330adf178cdcb9c22ee7db8dab30dc8);
+            
+    
+            var poly_line_48fb19ce683f019a7d603cc521295af9 = L.polyline(
+                [[40.00551, -75.30201], [40.00543, -75.30199], [40.0052, -75.30186], [40.0049, -75.30169], [40.00472, -75.30164], [40.00453, -75.30164], [40.0044, -75.30154], [40.00458, -75.30122], [40.00479, -75.30084], [40.005, -75.30045], [40.00561, -75.2993], [40.00582, -75.29889], [40.00721, -75.29617], [40.0085, -75.29363], [40.00866, -75.29335], [40.00893, -75.2931], [40.00799, -75.29125], [40.00774, -75.29074], [40.00807, -75.29047], [40.00818, -75.29036], [40.00821, -75.29044]],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "blue", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.85, "smoothFactor": 1.0, "stroke": true, "weight": 7}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+        var popup_9cd6c4d1a4e87207a6f582afec93317f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_5b5c0f519c9c54a07e13d24e14726498 = $(`<div id="html_5b5c0f519c9c54a07e13d24e14726498" style="width: 100.0%; height: 100.0%;">             <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>             <b style="font-size: 15px;">Route Segment</b><br>             <b>From:</b> Home<br>             <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br>             <b>To:</b> Ardmore Station<br>             <span style='font-size:13px'>39 Station Rd, Ardmore, PA</span><br><br>             <b>Departure:</b> 17:32<br>             <b>Arrival:</b> 17:36<br>             <b>Travel Time:</b> 4.0 min<br>             <b>Distance:</b> 1.3 km             </div>             </div>`)[0];
+                popup_9cd6c4d1a4e87207a6f582afec93317f.setContent(html_5b5c0f519c9c54a07e13d24e14726498);
+            
+        
+
+        poly_line_48fb19ce683f019a7d603cc521295af9.bindPopup(popup_9cd6c4d1a4e87207a6f582afec93317f)
+        ;
+
+        
+    
+    
+            var poly_line_7acec7c818319006dfb7b0a2afccee31 = L.polyline(
+                [[40.00821, -75.29044], [40.00818, -75.29036], [40.00807, -75.29047], [40.00774, -75.29074], [40.0072, -75.28968], [40.00617, -75.28758], [40.00585, -75.28694]],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "green", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.85, "smoothFactor": 1.0, "stroke": true, "weight": 7}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+        var popup_1a87fbf6f7914edd2976cf2840db5932 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f36a08fa44f8e2d395cc5ef50dcff0b0 = $(`<div id="html_f36a08fa44f8e2d395cc5ef50dcff0b0" style="width: 100.0%; height: 100.0%;">             <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>             <b style="font-size: 15px;">Route Segment</b><br>             <b>From:</b> Ardmore Station<br>             <span style='font-size:13px'>39 Station Rd, Ardmore, PA</span><br>             <b>To:</b> CVS<br>             <span style='font-size:13px'>119 E Lancaster Ave, Ardmore, PA</span><br><br>             <b>Departure:</b> 17:39<br>             <b>Arrival:</b> 17:40<br>             <b>Travel Time:</b> 1.0 min<br>             <b>Distance:</b> 0.5 km             </div>             </div>`)[0];
+                popup_1a87fbf6f7914edd2976cf2840db5932.setContent(html_f36a08fa44f8e2d395cc5ef50dcff0b0);
+            
+        
+
+        poly_line_7acec7c818319006dfb7b0a2afccee31.bindPopup(popup_1a87fbf6f7914edd2976cf2840db5932)
+        ;
+
+        
+    
+    
+            var poly_line_c549b16683e194c296879b17e811f90e = L.polyline(
+                [[40.00585, -75.28694], [40.00525, -75.28577], [40.00543, -75.2856], [40.00565, -75.28524], [40.00592, -75.28465], [40.00609, -75.28428], [40.00637, -75.28462], [40.00692, -75.28531], [40.00717, -75.28561], [40.00726, -75.28563], [40.00764, -75.28556], [40.00772, -75.28555], [40.00771, -75.28566], [40.00771, -75.2857], [40.00764, -75.28574], [40.00713, -75.28584], [40.00704, -75.28596], [40.00704, -75.28621], [40.0074, -75.28621], [40.0074, -75.28646]],
+                {"bubblingMouseEvents": true, "color": "orange", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "orange", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.85, "smoothFactor": 1.0, "stroke": true, "weight": 7}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+        var popup_da70a50657ba1f61479e10bbbc2c7ed4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_eae9a8a2ffe1fbaf1c5c06ec32b4b81e = $(`<div id="html_eae9a8a2ffe1fbaf1c5c06ec32b4b81e" style="width: 100.0%; height: 100.0%;">             <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>             <b style="font-size: 15px;">Route Segment</b><br>             <b>From:</b> CVS<br>             <span style='font-size:13px'>119 E Lancaster Ave, Ardmore, PA</span><br>             <b>To:</b> Trader Joe's<br>             <span style='font-size:13px'>112 Coulter Ave, Ardmore, PA</span><br><br>             <b>Departure:</b> 17:50<br>             <b>Arrival:</b> 17:52<br>             <b>Travel Time:</b> 2.0 min<br>             <b>Distance:</b> 0.7 km             </div>             </div>`)[0];
+                popup_da70a50657ba1f61479e10bbbc2c7ed4.setContent(html_eae9a8a2ffe1fbaf1c5c06ec32b4b81e);
+            
+        
+
+        poly_line_c549b16683e194c296879b17e811f90e.bindPopup(popup_da70a50657ba1f61479e10bbbc2c7ed4)
+        ;
+
+        
+    
+    
+            var poly_line_5accdd3a7308806ca6ef52939e31fe5e = L.polyline(
+                [[40.0074, -75.28646], [40.0074, -75.28686], [40.00728, -75.28686], [40.00728, -75.28739], [40.00733, -75.2875], [40.00739, -75.2877], [40.00752, -75.28789], [40.00758, -75.28806], [40.00762, -75.28826], [40.00763, -75.28827], [40.0079, -75.28826], [40.00791, -75.2883], [40.00792, -75.28834], [40.00815, -75.28881], [40.0084, -75.28932], [40.00858, -75.28962], [40.00875, -75.29], [40.00896, -75.29043], [40.00875, -75.2906], [40.00808, -75.29118], [40.00799, -75.29125], [40.0081, -75.29147], [40.00836, -75.29197], [40.00874, -75.29275], [40.00893, -75.2931], [40.00876, -75.29325], [40.00867, -75.29334], [40.00855, -75.29353], [40.00746, -75.29566], [40.00591, -75.2987], [40.00566, -75.2992], [40.00512, -75.30024], [40.00464, -75.30111], [40.0044, -75.30154], [40.00453, -75.30164], [40.00459, -75.30164], [40.00476, -75.30164], [40.0049, -75.30169], [40.00509, -75.30179], [40.00535, -75.30194], [40.00543, -75.30199], [40.00551, -75.30201]],
+                {"bubblingMouseEvents": true, "color": "purple", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "purple", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.85, "smoothFactor": 1.0, "stroke": true, "weight": 7}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+        var popup_b5aa624f63b9e039c63f2b2bbcf3d306 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_648aa9d1180d3f2742887df0d2aceb9e = $(`<div id="html_648aa9d1180d3f2742887df0d2aceb9e" style="width: 100.0%; height: 100.0%;">             <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>             <b style="font-size: 15px;">Route Segment</b><br>             <b>From:</b> Trader Joe's<br>             <span style='font-size:13px'>112 Coulter Ave, Ardmore, PA</span><br>             <b>To:</b> Home<br>             <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br><br>             <b>Departure:</b> 18:17<br>             <b>Arrival:</b> 17:32<br>             <b>Travel Time:</b> 6.0 min<br>             <b>Distance:</b> 1.8 km             </div>             </div>`)[0];
+                popup_b5aa624f63b9e039c63f2b2bbcf3d306.setContent(html_648aa9d1180d3f2742887df0d2aceb9e);
+            
+        
+
+        poly_line_5accdd3a7308806ca6ef52939e31fe5e.bindPopup(popup_b5aa624f63b9e039c63f2b2bbcf3d306)
+        ;
+
+        
+    
+    
+            var poly_line_60fb7aada43892d2397d1efea055b3f6 = L.polyline(
+                [[40.00551, -75.30201]],
+                {"bubblingMouseEvents": true, "color": "black", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "black", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.9, "smoothFactor": 1.0, "stroke": true, "weight": 7}
+            ).addTo(map_c1fad6fd2208ed0cce0e7e4e9f98a82b);
+        
+    
+        var popup_d7a7922d091d4104a6f3a82992361f18 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_6edd5f166fe8fd2281219347167e7b81 = $(`<div id="html_6edd5f166fe8fd2281219347167e7b81" style="width: 100.0%; height: 100.0%;">             <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>             <b style="font-size: 15px;">Return to Depot</b><br>             <b>From:</b> Home<br>             <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br>             <b>To:</b> Home<br>             <span style='font-size:13px'>19 Hannum Drive, Ardmore, PA</span><br><br>             <b>Departure:</b> 17:32<br>             <b>Arrival:</b> 17:32<br>             <b>Travel Time:</b> 0.0 min<br>             <b>Distance:</b> 0.0 km             </div>             </div>`)[0];
+                popup_d7a7922d091d4104a6f3a82992361f18.setContent(html_6edd5f166fe8fd2281219347167e7b81);
+            
+        
+
+        poly_line_60fb7aada43892d2397d1efea055b3f6.bindPopup(popup_d7a7922d091d4104a6f3a82992361f18)
+        ;
+
+        
+    
 </script>
 </html>

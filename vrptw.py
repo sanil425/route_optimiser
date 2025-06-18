@@ -1,5 +1,3 @@
-"""Vehicles Routing Problem (VRP) with Time Windows."""
-
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from gpt_interface import get_data
@@ -10,9 +8,50 @@ import time
 from maps import get_time_matrix
 from maps import get_distance_matrix
 import polyline
+import os
+from dotenv import load_dotenv
 
-GOOGLEMAPS_API_KEY = "AIzaSyA_mnq-8XaTO8pH64EXolOrKjMnkK3dSqc"
+load_dotenv()
+GOOGLEMAPS_API_KEY = os.getenv("GOOGLEMAPS_API_KEY")
 gmaps = googlemaps.Client(key=GOOGLEMAPS_API_KEY)
+
+# helpers 
+def build_matrices(data, gmaps):
+    """
+    Adds travel time and distance matrices to the data dictionary using Google Maps.
+    """
+    addresses = data["location_addresses"]
+    data["time_matrix"] = get_time_matrix(addresses, gmaps)
+    data["distance_matrix"] = get_distance_matrix(addresses, gmaps)
+
+def parse_instruction(instruction):
+    """
+    Parses the user's natural language instruction into structured routing data.
+    Fills in fallback depot windows if needed.
+    """
+    data = get_data(instruction)
+
+    if "depot_departure_window" not in data and "depot_time_window" in data:
+        data["depot_departure_window"] = data["depot_time_window"]
+        data["depot_return_window"] = data["depot_time_window"]
+
+    # Simple check
+    if data["depot"] != 0:
+        print("⚠️ Warning: Depot index is not zero. Check the instruction format.")
+
+    return data
+
+def load_user_instruction(file_path, scenario_name):
+    """Load the user instruction for a given scenario name."""
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    # Split by === to find scenarios
+    scenarios = content.split('=== ')
+    for scenario in scenarios:
+        if scenario.strip().startswith(f"Scenario: {scenario_name}"):
+            # Remove the first line and return the rest
+            return '\n'.join(scenario.strip().split('\n')[1:]).strip()
+    raise ValueError(f"Scenario '{scenario_name}' not found in {file_path}.")
 
 
 def visualize_route(
@@ -25,170 +64,122 @@ def visualize_route(
     arrival_departure_info,
     return_to_start=True,
     map_style='CartoDB positron',
-    api_key="YOUR_GOOGLE_API_KEY"
+    api_key=""
 ):
-    # Initialize Google Maps client
+    """
+    Creates an interactive Folium map of the optimized route with rich popups.
+    """
     gmaps = googlemaps.Client(key=api_key)
 
-    # Geocode all addresses
+    # Geocode all addresses to get lat/lon
     lat_list = []
     lon_list = []
     for addy in address_list:
-        geocode_res = gmaps.geocode(addy)
-        location = geocode_res[0]['geometry']['location']
-        lat_list.append(location['lat'])
-        lon_list.append(location['lng'])
-        time.sleep(0.1)  # avoid hitting rate limit
+        loc = gmaps.geocode(addy)[0]['geometry']['location']
+        lat_list.append(loc['lat'])
+        lon_list.append(loc['lng'])
+        time.sleep(0.1)
 
-    # Build ordered list of coordinates
     route_coords = [(lat_list[i], lon_list[i]) for i in visit_order]
+    m = folium.Map(location=route_coords[0], zoom_start=10, tiles=map_style)
 
-    # Create folium map with style
-    start_lat, start_lon = route_coords[0]
-    m = folium.Map(location=[start_lat, start_lon], zoom_start=8, tiles=map_style)
+    # Build lookup for arrival/departure
+    time_lookup = {node: (arr, dep) for node, arr, dep in arrival_departure_info}
 
-    # Add markers for each stop
-    for stop_num, i in enumerate(visit_order):
-        lat = lat_list[i]
-        lon = lon_list[i]
-        addy = address_list[i]
-        name = location_names[i]
-        duration = location_durations[i]
-
-        # Lookup arrival/departure times for this stop
-        arrival_str = ""
-        departure_str = ""
-        for stop_info in arrival_departure_info:
-            node_idx, arr_str, dep_str = stop_info
-            if node_idx == i:
-                arrival_str = arr_str
-                departure_str = dep_str
-                break
-
-        # Build nicer popup → with arrival & departure times
-        popup_text = f'''
-        <div style="
-            width: 250px;
-            font-size: 15px;
-            line-height: 1.5;
-            font-family: Arial, sans-serif;
-        ">
-        <b>{name}</b><br>
-        {addy}<br>
-        Arrival: {arrival_str}<br>
-        Departure: {departure_str}<br>
-        {'Depot / Home' if duration == 0 else f'Time spent: {duration} minutes'}
-        </div>
-        '''
-
-        # Add marker → numbered circle marker
+    # Add markers
+    for stop_num, node in enumerate(visit_order):
+        arrival, departure = time_lookup.get(node, ("?", "?"))
+        popup = f"""<div style='width: 280px; font-size: 14px; font-family: Arial; line-height: 1.5'>
+        <b style="font-size: 16px;">{location_names[node]}</b><br>
+        <span style='font-size:13px'>{address_list[node]}</span><br><br>
+        <b>Arrival:</b> {arrival}<br>
+        <b>Departure:</b> {departure}<br>
+        <b>Time Spent:</b> {'Depot / Home' if location_durations[node] == 0 else f"{location_durations[node]} minutes"}
+        </div>"""
         icon_color = 'green' if stop_num == 0 else 'red'
-
         folium.Marker(
-            [lat, lon],
-            popup=popup_text,
+            [lat_list[node], lon_list[node]],
+            popup=popup,
             icon=folium.DivIcon(html=f"""
-                <div style="
-                    background-color: {icon_color};
-                    color: white;
-                    border-radius: 50%;
-                    width: 30px;
-                    height: 30px;
-                    text-align: center;
-                    line-height: 30px;
-                    font-weight: bold;
-                    font-size: 14px;
-                ">{stop_num + 1}</div>
-            """)
+                <div style='background-color: {icon_color}; color: white; border-radius: 50%;
+                            width: 30px; height: 30px; text-align: center; line-height: 30px;
+                            font-weight: bold; font-size: 14px;'>{stop_num + 1}</div>""")
         ).add_to(m)
 
-    # Define color palette for segments
-    colors = ['blue', 'deepskyblue', 'green', 'yellowgreen', 'gold', 'orange', 'orangered', 'red']
-
-    # Draw individual route segments using Directions API (road-following)
-    for j in range(len(visit_order) - 1):
-        from_i = visit_order[j]
-        to_i = visit_order[j+1]
-
+    # Draw segments
+    colors = ['blue', 'green', 'orange', 'purple', 'gold', 'pink', 'gray']
+    for i in range(len(visit_order) - 1):
+        from_i = visit_order[i]
+        to_i = visit_order[i + 1]
         origin = address_list[from_i]
         destination = address_list[to_i]
+        directions = gmaps.directions(origin, destination, mode='driving')
+        if directions:
+            poly = directions[0]['overview_polyline']['points']
+            decoded = polyline.decode(poly)
+            travel_time = time_matrix[from_i][to_i]
+            travel_dist = distance_matrix[from_i][to_i]
+            from_dep = time_lookup.get(from_i, ("", ""))[1]
+            to_arr = time_lookup.get(to_i, ("", ""))[0]
 
-        # Get driving directions
-        response = gmaps.directions(origin, destination, mode='driving')
+            popup = f"""
+            <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>
+            <b style="font-size: 15px;">Route Segment</b><br>
+            <b>From:</b> {location_names[from_i]}<br>
+            <span style='font-size:13px'>{address_list[from_i]}</span><br>
+            <b>To:</b> {location_names[to_i]}<br>
+            <span style='font-size:13px'>{address_list[to_i]}</span><br><br>
+            <b>Departure:</b> {from_dep}<br>
+            <b>Arrival:</b> {to_arr}<br>
+            <b>Travel Time:</b> {travel_time:.1f} min<br>
+            <b>Distance:</b> {travel_dist:.1f} km
+            </div>
+            """
 
-        # Extract polyline and decode
-        polyline_str = response[0]['overview_polyline']['points']
-        decoded_points = polyline.decode(polyline_str)
+            folium.PolyLine(
+                decoded,
+                color=colors[i % len(colors)],
+                weight=7,
+                opacity=0.85,
+                popup=popup
+            ).add_to(m)
 
-        travel_time = time_matrix[from_i][to_i]
-        travel_distance = distance_matrix[from_i][to_i]
-
-        popup_text = f"Travel time: {travel_time:.1f} min, Distance: {travel_distance:.1f} km"
-
-        # Cycle through colors
-        color = colors[j % len(colors)]
-
-        folium.PolyLine(
-            decoded_points,
-            color=color,
-            weight=8,  # thicker line
-            opacity=0.8,
-            popup=popup_text
-        ).add_to(m)
-
-    # Optional: add final leg back to depot
+    # Return to depot
     if return_to_start:
         from_i = visit_order[-1]
         to_i = visit_order[0]
+        directions = gmaps.directions(address_list[from_i], address_list[to_i], mode='driving')
+        if directions:
+            poly = directions[0]['overview_polyline']['points']
+            decoded = polyline.decode(poly)
+            travel_time = time_matrix[from_i][to_i]
+            travel_dist = distance_matrix[from_i][to_i]
+            from_dep = time_lookup.get(from_i, ("", ""))[1]
+            to_arr = time_lookup.get(to_i, ("", ""))[0]
 
-        origin = address_list[from_i]
-        destination = address_list[to_i]
+            popup = f"""
+            <div style='width: 320px; font-size: 14px; font-family: Arial; line-height: 1.6'>
+            <b style="font-size: 15px;">Return to Depot</b><br>
+            <b>From:</b> {location_names[from_i]}<br>
+            <span style='font-size:13px'>{address_list[from_i]}</span><br>
+            <b>To:</b> {location_names[to_i]}<br>
+            <span style='font-size:13px'>{address_list[to_i]}</span><br><br>
+            <b>Departure:</b> {from_dep}<br>
+            <b>Arrival:</b> {to_arr}<br>
+            <b>Travel Time:</b> {travel_time:.1f} min<br>
+            <b>Distance:</b> {travel_dist:.1f} km
+            </div>
+            """
+            folium.PolyLine(
+                decoded,
+                color='black',
+                weight=7,
+                opacity=0.9,
+                popup=popup
+            ).add_to(m)
 
-        response = gmaps.directions(origin, destination, mode='driving')
-        polyline_str = response[0]['overview_polyline']['points']
-        decoded_points = polyline.decode(polyline_str)
-
-        travel_time = time_matrix[from_i][to_i]
-        travel_distance = distance_matrix[from_i][to_i]
-
-        popup_text = f"Travel time: {travel_time:.1f} min, Distance: {travel_distance:.1f} km"
-
-        # Use a distinct color for return leg
-        color = colors[(len(visit_order)-1) % len(colors)]
-
-        folium.PolyLine(
-            decoded_points,
-            color=color,
-            weight=8,
-            opacity=0.8,
-            popup=popup_text
-        ).add_to(m)
-
-    # Add legend
-    legend_html = '''
-    <div style="
-        position: fixed;
-        bottom: 50px;
-        left: 50px;
-        z-index: 9999;
-        background-color: white;
-        border:2px solid grey;
-        padding: 10px;
-        font-size: 14px;
-        box-shadow: 3px 3px 5px rgba(0,0,0,0.4);
-    ">
-    <b>Legend</b><br>
-    <span style="color:red;">&#9632;</span> Depot / Home<br>
-    <span style="color:blue;">&#9632;</span> Other stops<br>
-    <span style="color:black;">&#8213;</span> Route segments (various colors, click to view travel time & distance)<br>
-    </div>
-    '''
-
-    m.get_root().html.add_child(folium.Element(legend_html))
-
-    # Save map
-    m.save('route_map.html')
-    print("Map successfully saved to route_map.html — open it in your browser!")
+    m.save("route_map.html")
+    print("✅ Map saved as route_map.html")
 
 
 def extract_route_text(data, manager, routing, solution):
@@ -277,8 +268,6 @@ def extract_route_text(data, manager, routing, solution):
     return route_text
 
 
-
-
 def get_summary_from_gpt(route_text):
     import openai
     from dotenv import load_dotenv
@@ -319,8 +308,6 @@ def get_summary_from_gpt(route_text):
     Travel back to origin. Travel time is (travel time). You will arrive back at your origin at (time). Your total journey was (end time - start time in hours and minutes)
     """
 
-
-
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -334,28 +321,49 @@ def get_summary_from_gpt(route_text):
     return reply_text
 
 
+def compute_trip_summary(data, visit_order, arrival_departure_info):
+    """
+    Computes summary statistics from the visit order and arrival/departure info.
+    """
+    total_distance = 0
+    total_travel_time = 0
+    total_stop_time = 0
 
-def main():
-    user_instruction = load_user_instruction('user_instruction_scenarios.txt', 'Beach Day')
-    data = get_data(user_instruction)
-    check_depot(data) 
+    for i in range(len(visit_order) - 1):
+        from_i = visit_order[i]
+        to_i = visit_order[i + 1]
+        total_distance += data["distance_matrix"][from_i][to_i]
+        total_travel_time += data["time_matrix"][from_i][to_i]
 
-    # fallback in case model returns depot_time_window instead of newer keys
-    if "depot_departure_window" not in data and "depot_time_window" in data:
-        data["depot_departure_window"] = data["depot_time_window"]
-        data["depot_return_window"] = data["depot_time_window"]
+    for idx in visit_order:
+        total_stop_time += data["location_durations"][idx]
 
-    time_matrix = get_time_matrix(data["location_addresses"], gmaps)
-    data["time_matrix"] = time_matrix
+    # Start and end time
+    arr_map = {node: arr for node, arr, _ in arrival_departure_info}
+    dep_map = {node: dep for node, _, dep in arrival_departure_info}
+    start_time = dep_map.get(data["depot"], "?")
+    end_time = arr_map.get(visit_order[-1], "?")
 
-    distance_matrix = get_distance_matrix(data["location_addresses"], gmaps)
-    data["distance_matrix"] = distance_matrix
+    return {
+        "total_stops": len(visit_order) - 1,
+        "total_distance": total_distance,
+        "total_travel_time": total_travel_time,
+        "total_stop_time": total_stop_time,
+        "start_time": start_time,
+        "end_time": end_time,
+        "return_to_start": visit_order[-1] == data["depot"]
+    }
 
-    # Create routing manager
+
+def solve_vrptw(data):
+    """
+    Solves the VRPTW problem and returns the manager, routing model, and solution.
+    """
     manager = pywrapcp.RoutingIndexManager(
-        len(data["time_matrix"]), data["num_vehicles"], data["depot"]
+        len(data["time_matrix"]),
+        data["num_vehicles"],
+        data["depot"]
     )
-
     routing = pywrapcp.RoutingModel(manager)
 
     def time_callback(from_index, to_index):
@@ -365,183 +373,115 @@ def main():
         service_time = data["location_durations"][from_node] if from_node != data["depot"] else 0
         return travel_time + service_time
 
-    transit_callback_index = routing.RegisterTransitCallback(time_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+    transit_cb = routing.RegisterTransitCallback(time_callback)
+    routing.SetArcCostEvaluatorOfAllVehicles(transit_cb)
 
     routing.AddDimension(
-        transit_callback_index,
-        10000,
-        10000,
-        False,
-        "Time",
+        transit_cb,
+        10000,  # buffer/slack
+        10000,  # max time per vehicle
+        False,  # don't force start cumul to zero
+        "Time"
     )
-    time_dimension = routing.GetDimensionOrDie("Time")
+    time_dim = routing.GetDimensionOrDie("Time")
 
-    for location_idx, window in enumerate(data["time_windows"]):
-        index = manager.NodeToIndex(location_idx)
-        time_dimension.CumulVar(index).SetRange(window[0], window[1])
+    for i, window in enumerate(data["time_windows"]):
+        time_dim.CumulVar(manager.NodeToIndex(i)).SetRange(window[0], window[1])
 
-    depot_idx = data["depot"]
-    # Set depot time windows
-    for vehicle_id in range(data["num_vehicles"]):
-        start_idx = routing.Start(vehicle_id)
-        end_idx = routing.End(vehicle_id)
-        time_dimension.CumulVar(start_idx).SetRange(*data["depot_departure_window"])
-        time_dimension.CumulVar(end_idx).SetRange(*data["depot_return_window"])
+    for v in range(data["num_vehicles"]):
+        time_dim.CumulVar(routing.Start(v)).SetRange(*data["depot_departure_window"])
+        time_dim.CumulVar(routing.End(v)).SetRange(*data["depot_return_window"])
 
-    # Soft upper bound on end time → encourage shorter journey
-    time_dimension.SetCumulVarSoftUpperBound(routing.End(0), 1439, 1000)
+    for from_name, to_name in data.get("precedence_constraints", []):
+        from_idx = data["location_names"].index(from_name)
+        to_idx = data["location_names"].index(to_name)
+        routing.solver().Add(
+            time_dim.CumulVar(manager.NodeToIndex(from_idx)) +
+            data["location_durations"][from_idx]
+            <= time_dim.CumulVar(manager.NodeToIndex(to_idx))
+        )
 
-    # Add precedence constraints if any
-    precedence_constraints = data.get("precedence_constraints", [])
-    if precedence_constraints:
-        print(f"INFO: Applying precedence constraints: {precedence_constraints}")
+    # Optimise journey
+    routing.AddVariableMaximizedByFinalizer(time_dim.CumulVar(routing.Start(0)))
+    routing.AddVariableMinimizedByFinalizer(time_dim.CumulVar(routing.End(0)))
 
-        for from_name, to_name in precedence_constraints:
-            from_idx = data["location_names"].index(from_name)
-            to_idx = data["location_names"].index(to_name)
+    search_params = pywrapcp.DefaultRoutingSearchParameters()
+    search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    search_params.time_limit.seconds = 10
 
-            from_index = manager.NodeToIndex(from_idx)
-            to_index = manager.NodeToIndex(to_idx)
-
-            routing.solver().Add(
-                time_dimension.CumulVar(from_index) + data["location_durations"][from_idx]
-                <= time_dimension.CumulVar(to_index)
-            )
-
-
-
-    # OPTIMIZED OBJECTIVE → minimize total journey time (end - start)
-    start_time = time_dimension.CumulVar(routing.Start(0))
-    end_time = time_dimension.CumulVar(routing.End(0))
-
-    # Maximize start time (leave as late as possible)
-    routing.AddVariableMaximizedByFinalizer(start_time)
-
-    # Minimize end time (finish as early as possible)
-    routing.AddVariableMinimizedByFinalizer(end_time)
-
-
-
-    # === DEBUG PRINT: check key parameters ===
-    print(f"\n--- DEBUG: Checking parameters before solving ---")
-    print(f"Depot departure window: {data['depot_departure_window']}")
-    print(f"Depot return window: {data['depot_return_window']}")
-
-    print(f"\nTime windows:")
-    for name, window in zip(data["location_names"], data["time_windows"]):
-        open_h, open_m = divmod(window[0], 60)
-        close_h, close_m = divmod(window[1], 60)
-        print(f"  {name}: {open_h:02d}:{open_m:02d} → {close_h:02d}:{close_m:02d}")
-
-    print(f"\nPrecedence constraints: {precedence_constraints}")
-    print(f"--- END DEBUG ---\n")
-
-    # Solve
-    search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-    search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-
-    solution = routing.SolveWithParameters(search_parameters)
+    solution = routing.SolveWithParameters(search_params)
     if not solution:
-        print("no sol found, constraints to tight")
-    else:
-        # Debug: print optimized start/end
-        #print("Optimized start time (min from midnight):", solution.Min(start_time))
-        #print("Optimized end time (min from midnight):", solution.Min(end_time))
-        #print("Total journey time (min):", solution.Min(end_time) - solution.Min(start_time))
+        raise ValueError("❌ No solution found. Check time windows and constraints.")
+    
+    return manager, routing, solution
 
-        # Extract route text
-        route_text = extract_route_text(data, manager, routing, solution)
 
-        # Build visit order
-        visit_order = []
-        index = routing.Start(0)  # vehicle id = 0
-        while not routing.IsEnd(index):
-            node_index = manager.IndexToNode(index)
-            visit_order.append(node_index)
-            index = solution.Value(routing.NextVar(index))
+def run_vrptw(instruction):
+    """
+    Main function that takes user instruction, solves VRPTW, and returns the route output.
+    """
+    gmaps = googlemaps.Client(key=GOOGLEMAPS_API_KEY)
 
-        # Create map
-        visualize_route(
-            data["location_addresses"],
-            visit_order,
-            data["location_durations"],
-            data["location_names"],
-            data["distance_matrix"],
-            data["time_matrix"],
-            data["arrival_departure_info"],
-            return_to_start=True,
-            map_style='CartoDB.Voyager',
-            api_key=GOOGLEMAPS_API_KEY
-        )
+    # Parse, enrich, solve
+    data = parse_instruction(instruction)
+    build_matrices(data, gmaps)
+    manager, routing, solution = solve_vrptw(data)
 
-        # GPT summary
-        summary = get_summary_from_gpt(route_text)
-        print("AI summary of route:")
+    # Extract visit order
+    visit_order = []
+    index = routing.Start(0)
+    while not routing.IsEnd(index):
+        visit_order.append(manager.IndexToNode(index))
+        index = solution.Value(routing.NextVar(index))
+    visit_order.append(manager.IndexToNode(index))
+
+    # Route text and summary
+    route_text = extract_route_text(data, manager, routing, solution)
+    trip_summary = compute_trip_summary(data, visit_order, data["arrival_departure_info"])
+    summary_text = get_summary_from_gpt(route_text)
+
+    # Generate map
+    visualize_route(
+        data["location_addresses"],
+        visit_order,
+        data["location_durations"],
+        data["location_names"],
+        data["distance_matrix"],
+        data["time_matrix"],
+        data["arrival_departure_info"],
+        return_to_start=trip_summary["return_to_start"],
+        api_key=GOOGLEMAPS_API_KEY
+    )
+
+    return "route_map.html", summary_text, trip_summary
+
+def main():
+    scenario_name = "After Work Groceries"
+    instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
+
+    print(f"\n=== Scenario: {scenario_name} ===")
+    print(instruction)
+    print("\nSolving route...\n")
+
+    try:
+        map_file, summary, trip_summary = run_vrptw(instruction)
+
+        print("=== Trip Summary ===")
+        for key, val in trip_summary.items():
+            print(f"{key.replace('_', ' ').title()}: {val}")
+
+        print("\n=== GPT Itinerary Summary ===")
         print(summary)
-        print("\n")
+        print(f"\n✅ Map saved to {map_file}")
 
-
-
-# helpers
-def check_depot(data):
-    """Sanity check to ensure Home is first stop."""
-    #print("Depot index:", data["depot"])
-    #print("First location name:", data["location_names"][0])
-    #print("Full location names:", data["location_names"])
-
-    if data["depot"] != 0:
-        print("WARNING: Depot is not first stop! Check user prompt or get_data().")
-
-    if "Home" not in data["location_names"][0] and "Hannum Drive" not in data["location_names"][0] and "Lancaster Ave" not in data["location_names"][0]:
-        print("WARNING: First stop is not Home! LLM may have failed to parse Home correctly.")
-def print_solution(data, manager, routing, solution):
-    """Prints solution on console."""
-    print(f"Objective: {solution.ObjectiveValue()}")
-    time_dimension = routing.GetDimensionOrDie("Time")
-    total_time = 0
-    for vehicle_id in range(data["num_vehicles"]):
-        if not routing.IsVehicleUsed(solution, vehicle_id):
-            continue
-        index = routing.Start(vehicle_id)
-        plan_output = f"Route for vehicle {vehicle_id}:\n"
-        while not routing.IsEnd(index):
-            time_var = time_dimension.CumulVar(index)
-            plan_output += (
-                f"{manager.IndexToNode(index)}"
-                f" Time({solution.Min(time_var)},{solution.Max(time_var)})"
-                " -> "
-            )
-            index = solution.Value(routing.NextVar(index))
-        time_var = time_dimension.CumulVar(index)
-        plan_output += (
-            f"{manager.IndexToNode(index)}"
-            f" Time({solution.Min(time_var)},{solution.Max(time_var)})\n"
-        )
-        plan_output += f"Time of the route: {solution.Min(time_var)}min\n"
-        print(plan_output)
-        total_time += solution.Min(time_var)
-    print(f"Total time of all routes: {total_time}min")
-def load_user_instruction(file_path, scenario_name):
-    """Load the user instruction for a given scenario name."""
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-    # Split by === to find scenarios
-    scenarios = content.split('=== ')
-    for scenario in scenarios:
-        if scenario.strip().startswith(f"Scenario: {scenario_name}"):
-            # Remove the first line and return the rest
-            return '\n'.join(scenario.strip().split('\n')[1:]).strip()
-    raise ValueError(f"Scenario '{scenario_name}' not found in {file_path}.")
-
-
+    except Exception as e:
+        print(f"❌ Error while solving route: {e}")
 
 
 if __name__ == "__main__":
-    main()  
+    main()
 
 
 
 
 
- 
