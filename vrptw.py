@@ -172,6 +172,7 @@ def visualize_route(
             <b>Distance:</b> {travel_dist:.1f} km
             </div>
             """
+            
             folium.PolyLine(
                 decoded,
                 color='black',
@@ -180,6 +181,7 @@ def visualize_route(
                 popup=popup
             ).add_to(m)
 
+    m.fit_bounds(route_coords, padding=(150, 150))
     m.save("route_map.html")
     print("✅ Map saved as route_map.html")
 
@@ -482,7 +484,7 @@ def run_vrptw(instruction):
 
 
 def main():
-    scenario_name = "No Return"
+    scenario_name = "After Work Groceries"
     instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
 
     #print(f"\n=== Scenario: {scenario_name} ===")
