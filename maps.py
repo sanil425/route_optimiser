@@ -1,5 +1,6 @@
 import googlemaps
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 GOOGLEMAPS_API_KEY = os.getenv("GOOGLEMAPS_API_KEY")
@@ -55,7 +56,14 @@ def get_distance_matrix(location_addresses, gmaps):
 
         for j in range(n):
             element = response['rows'][0]['elements'][j]
-            distance_in_km = element['distance']['value'] / 1000  # meters → km
+
+            # Check that distance info is valid
+            if element['status'] == 'OK':
+                distance_in_km = element['distance']['value'] / 1000  # meters → km
+            else:
+                print(f"Warning: distance_matrix[{i}][{j}] status = {element['status']}")
+                distance_in_km = 9999  # fallback value
+
             distance_matrix[i][j] = distance_in_km
 
     return distance_matrix
