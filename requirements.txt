@@ -1,20 +1,17 @@
-# Core App Framework
+
 streamlit==1.35.0
 
-# AI + Instruction Parsing
 openai==1.84.0
 
-# Mapping & Routing
 googlemaps==4.10.0
 folium==0.16.0
 geopy==2.4.1
 ortools==9.13.4784
 
-# Data Handling & Math
 pandas>=2.0,<2.3
 numpy>=1.23,<2.0
 matplotlib>=3.7
 
-# Utilities
+# utils
 tqdm
 python-dotenv
