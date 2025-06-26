@@ -1,22 +1,23 @@
-# App Framework
-streamlit==1.35.0
+flask==2.3.2
+gunicorn==20.1.0
 
-# AI + Instruction Parsing
+# Google Maps API client
+googlemaps==4.10.0
+
+# OpenAI for GPT interaction
 openai==1.84.0
 
-# Mapping & Routing
-googlemaps==4.10.0
-folium==0.16.0
-geopy==2.4.1
+# Routing and optimization
 ortools==9.14.6206
 
-# Data Handling
+# Data handling & math
 pandas>=2.0,<2.3
 numpy>=1.23,<2.0
 matplotlib>=3.7
 
 # Utilities
+python-dotenv==1.1.0
 tqdm
-python-dotenv
-protobuf
-pillow>=10.0  # ⬅️ Add this to avoid the build error
+folium==0.16.0
+geopy==2.4.1
+protobuf>=3.20,<5
