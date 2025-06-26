@@ -1,5 +1,5 @@
-# Core App Framework
-streamlit==1.25.0
+# App Framework
+streamlit==1.35.0
 
 # AI + Instruction Parsing
 openai==1.84.0
@@ -8,9 +8,9 @@ openai==1.84.0
 googlemaps==4.10.0
 folium==0.16.0
 geopy==2.4.1
-ortools==9.13.4784
+ortools==9.14.6206
 
-# Data Handling & Math
+# Data Handling
 pandas>=2.0,<2.3
 numpy>=1.23,<2.0
 matplotlib>=3.7
@@ -18,3 +18,5 @@ matplotlib>=3.7
 # Utilities
 tqdm
 python-dotenv
+protobuf
+pillow>=10.0  # ⬅️ Add this to avoid the build error
