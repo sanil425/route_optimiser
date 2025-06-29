@@ -1,5 +1,5 @@
 # Ignore virtual environment
-venv/
+.venv/
 
 # Ignore API key file
 .env
