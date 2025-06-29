@@ -278,9 +278,7 @@ def extract_route_text(data, manager, routing, solution):
     data["arrival_departure_info"] = arrival_departure_info
     return route_text
 
-
-
-def get_summary_from_gpt(route_text):
+def get_summary_from_gpt(route_text, trip_summary=None):
     import openai
     from dotenv import load_dotenv
     import os
@@ -288,6 +286,7 @@ def get_summary_from_gpt(route_text):
     load_dotenv()
     openai.api_key = os.getenv("OPENAI_API_KEY")
 
+    # Build base prompt
     prompt = f"""
     Here is an optimized route, structured as a full schedule:
 
@@ -300,8 +299,22 @@ def get_summary_from_gpt(route_text):
     - The **travel time** to the next location (in hours and minutes).
     - The location name and address of the **arrival location**, and the time of arrival.
     - The **time spent at the arrival location**, and the time frame (from HH:MM to HH:MM), unless the arrival location is the origin.
-    - **Always include the return trip to the origin** at the end of the schedule, with the travel time and final arrival time at the origin.
+    """
 
+    # 🧠 Customize final instruction based on trip structure
+    if trip_summary and not trip_summary.get("return_to_start", True):
+        # Trip ends elsewhere
+        end_location = trip_summary.get("end_location", "final location")
+        prompt += f"""
+        The trip ends at {end_location}. Do NOT include a return to the origin.
+        Your output should end after the final stop."""
+    else:
+        # Default round trip
+        prompt += """
+        Always include the return trip to the origin at the end of the schedule, with the travel time and final arrival time at the origin."""
+
+    # Final formatting instructions
+    prompt += """
     Be explicit about when the user departs each location, how long the travel takes, and when they arrive. The output should feel like a personal itinerary the user can follow step by step.
 
     Only use real names and addresses of the locations. Do NOT say "Stop 1", "Order 2", etc.
@@ -316,10 +329,14 @@ def get_summary_from_gpt(route_text):
     Departure from (location name) at (time).
 
     Travel to (next location name), (address)... [repeat this pattern for all stops]
-
-    Travel back to origin. Travel time is (travel time). You will arrive back at your origin at (time). Your total journey was (end time - start time in hours and minutes)
     """
 
+    if trip_summary and trip_summary.get("return_to_start", True):
+        prompt += """
+        Travel back to origin. Travel time is (travel time). You will arrive back at your origin at (time). Your total journey was (end time - start time in hours and minutes)
+        """
+
+    # Call GPT
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -331,6 +348,8 @@ def get_summary_from_gpt(route_text):
 
     reply_text = response.choices[0].message.content.strip()
     return reply_text
+
+
 
 def compute_trip_summary(data, visit_order, arrival_departure_info):
     total_distance = 0
@@ -350,20 +369,20 @@ def compute_trip_summary(data, visit_order, arrival_departure_info):
     start_time = None
     end_time = None
 
-    # ✅ Get first departure from depot
+    # Get first departure from depot
     for node, arr, dep in arrival_departure_info:
         if node == depot:
             start_time = dep
             break
 
-    # ✅ Get last arrival at final node
+    # Get last arrival at final node
     final_node = visit_order[-1]
     for node, arr, dep in reversed(arrival_departure_info):
         if node == final_node:
             end_time = arr
             break
 
-    print("\n🧪 DEBUG: arrival_departure_info")
+    print("\narrival_departure_info")
     for entry in arrival_departure_info:
         print(entry)
 
@@ -374,50 +393,68 @@ def compute_trip_summary(data, visit_order, arrival_departure_info):
         "total_stop_time": total_stop_time,
         "start_time": start_time or "?",
         "end_time": end_time or "?",
-        "return_to_start": final_node == depot
+        "return_to_start": final_node == depot,
+        "start_location": data["location_names"][depot],
+        "end_location": data["location_names"][final_node]
     }
-
-
-
 
 
 def solve_vrptw(data):
     """
     Solves the VRPTW problem and returns the manager, routing model, and solution.
+    Supports custom end location if 'custom_end_index' is provided in data.
     """
+    start_index = data["depot"]
+    end_index = data.get("custom_end_index", start_index)
+
+    # ✅ Use separate start and end lists
     manager = pywrapcp.RoutingIndexManager(
         len(data["time_matrix"]),
         data["num_vehicles"],
-        data["depot"]
+        [start_index],
+        [end_index]
     )
+
     routing = pywrapcp.RoutingModel(manager)
 
+    # ⏱ Define transit callback (travel time + service time)
     def time_callback(from_index, to_index):
         from_node = manager.IndexToNode(from_index)
         to_node = manager.IndexToNode(to_index)
         travel_time = data["time_matrix"][from_node][to_node]
-        service_time = data["location_durations"][from_node] if from_node != data["depot"] else 0
+        service_time = data["location_durations"][from_node] if from_node != start_index else 0
         return travel_time + service_time
 
     transit_cb = routing.RegisterTransitCallback(time_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_cb)
 
+    # ➕ Add Time dimension
     routing.AddDimension(
         transit_cb,
-        10000,  # buffer/slack
+        10000,  # slack
         10000,  # max time per vehicle
         False,  # don't force start cumul to zero
         "Time"
     )
+
     time_dim = routing.GetDimensionOrDie("Time")
 
+    # 🕓 Apply time windows for all nodes (skip inactive ones)
     for i, window in enumerate(data["time_windows"]):
-        time_dim.CumulVar(manager.NodeToIndex(i)).SetRange(window[0], window[1])
+        node_index = manager.NodeToIndex(i)
+        time_var = time_dim.CumulVar(node_index)
+        if time_var is not None:
+            time_var.SetRange(window[0], window[1])
+        else:
+            print(f"⚠️ Skipping time window for inactive node {i} ({data['location_names'][i]})")
 
+    # ⏱ Depot departure and return window
     for v in range(data["num_vehicles"]):
         time_dim.CumulVar(routing.Start(v)).SetRange(*data["depot_departure_window"])
-        time_dim.CumulVar(routing.End(v)).SetRange(*data["depot_return_window"])
+        if "custom_end_index" not in data:
+            time_dim.CumulVar(routing.End(v)).SetRange(*data["depot_return_window"])
 
+    # ⛓ Add precedence constraints
     for from_name, to_name in data.get("precedence_constraints", []):
         from_idx = data["location_names"].index(from_name)
         to_idx = data["location_names"].index(to_name)
@@ -427,19 +464,22 @@ def solve_vrptw(data):
             <= time_dim.CumulVar(manager.NodeToIndex(to_idx))
         )
 
-    # Optimise journey
+    # 🎯 Optimize route start and end
     routing.AddVariableMaximizedByFinalizer(time_dim.CumulVar(routing.Start(0)))
     routing.AddVariableMinimizedByFinalizer(time_dim.CumulVar(routing.End(0)))
 
+    # 🔍 Search strategy
     search_params = pywrapcp.DefaultRoutingSearchParameters()
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     search_params.time_limit.seconds = 10
 
+    # 🧠 Solve
     solution = routing.SolveWithParameters(search_params)
     if not solution:
-        raise ValueError("❌ No solution found. Check time windows and constraints.")
-    
+        raise ValueError("No solution found. Check time windows and constraints.")
+
     return manager, routing, solution
+
 
 
 def run_vrptw(instruction):
@@ -464,7 +504,7 @@ def run_vrptw(instruction):
     # Route text and summary
     route_text = extract_route_text(data, manager, routing, solution)
     trip_summary = compute_trip_summary(data, visit_order, data["arrival_departure_info"])
-    summary_text = get_summary_from_gpt(route_text)
+    summary_text = get_summary_from_gpt(route_text, trip_summary)
 
     # Generate map
     visualize_route(
@@ -484,7 +524,7 @@ def run_vrptw(instruction):
 
 
 def main():
-    scenario_name = "After Work Groceries"
+    scenario_name = "Beach Day"
     instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
 
     #print(f"\n=== Scenario: {scenario_name} ===")
