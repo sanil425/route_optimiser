@@ -17,10 +17,10 @@ if st.button("Generate Optimised Route"):
     else:
         with st.spinner("Generating your optimised route..."):
             try:
-                map_file, summary, trip_summary = run_vrptw(user_instruction)
+                map_file, summary, trip_summary, explanation = run_vrptw(user_instruction)
                 st.success("✅ Route generated successfully!")
 
-                # 🧭 Trip Summary Section
+                # Trip Summary Section
                 st.markdown("### 🧭 Trip Summary")
                 st.markdown(f"""
                 - **Total Stops**: {trip_summary["total_stops"]}
@@ -33,15 +33,20 @@ if st.button("Generate Optimised Route"):
                 **Final Arrival**: {trip_summary["end_time"]}
                 """)
 
-                # 📝 GPT Text Summary
+                # GPT Text Summary
                 st.markdown("### 📝 Detailed Schedule")
                 st.text(summary)
 
-                # 🗺️ Show route map
+                # Show route map
                 st.markdown("### 🗺️ Route Map")
                 with open(map_file, 'r', encoding='utf-8') as f:
                     html_string = f.read()
                     components.html(html_string, height=600, scrolling=True)
+
+                # Route Logic Explanation
+                st.markdown("### 🤖 Why this route?")
+                st.info(explanation)
+
 
             except Exception as e:
                 st.error(f"❌ Error while generating route: {e}")

@@ -10,6 +10,7 @@ from maps import get_distance_matrix
 import polyline
 import os
 from dotenv import load_dotenv
+import json
 
 load_dotenv()
 GOOGLEMAPS_API_KEY = os.getenv("GOOGLEMAPS_API_KEY")
@@ -398,6 +399,44 @@ def compute_trip_summary(data, visit_order, arrival_departure_info):
         "end_location": data["location_names"][final_node]
     }
 
+def get_explanation_from_gpt(trip_summary, route_text):
+    import openai
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    prompt = f"""
+You are an assistant helping users understand why a computed driving route is efficient.
+
+Here is the optimized route:
+{route_text}
+
+Route summary data:
+{json.dumps(trip_summary, indent=2)}
+
+Explain, in 2–3 sentences, why this stop order is optimal — avoid fluff. Focus on:
+- how the geographic ordering reduces unnecessary travel
+- how it avoids backtracking
+- how hard time windows shaped the stop sequence
+
+Avoid repeating all stops. Just explain the logic behind the chosen order.
+Only include the most relevant reasoning.
+    """
+
+    response = openai.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant explaining route optimization logic."},
+            {"role": "user", "content": prompt},
+        ],
+        temperature=0.4
+    )
+
+    return response.choices[0].message.content.strip()
+
+
 
 def solve_vrptw(data):
     """
@@ -448,13 +487,13 @@ def solve_vrptw(data):
         else:
             print(f"⚠️ Skipping time window for inactive node {i} ({data['location_names'][i]})")
 
-    # ⏱ Depot departure and return window
+    # Depot departure and return window
     for v in range(data["num_vehicles"]):
         time_dim.CumulVar(routing.Start(v)).SetRange(*data["depot_departure_window"])
         if "custom_end_index" not in data:
             time_dim.CumulVar(routing.End(v)).SetRange(*data["depot_return_window"])
 
-    # ⛓ Add precedence constraints
+    # Add precedence constraints
     for from_name, to_name in data.get("precedence_constraints", []):
         from_idx = data["location_names"].index(from_name)
         to_idx = data["location_names"].index(to_name)
@@ -464,20 +503,19 @@ def solve_vrptw(data):
             <= time_dim.CumulVar(manager.NodeToIndex(to_idx))
         )
 
-    # 🎯 Optimize route start and end
+    # Optimize route start and end
     routing.AddVariableMaximizedByFinalizer(time_dim.CumulVar(routing.Start(0)))
     routing.AddVariableMinimizedByFinalizer(time_dim.CumulVar(routing.End(0)))
 
-    # 🔍 Search strategy
+    # Search strategy
     search_params = pywrapcp.DefaultRoutingSearchParameters()
     search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     search_params.time_limit.seconds = 10
 
-    # 🧠 Solve
+    # Solve
     solution = routing.SolveWithParameters(search_params)
     if not solution:
-        raise ValueError("No solution found. Check time windows and constraints.")
-
+      raise ValueError("No solution found. Check time windows and constraints.")
     return manager, routing, solution
 
 
@@ -505,6 +543,7 @@ def run_vrptw(instruction):
     route_text = extract_route_text(data, manager, routing, solution)
     trip_summary = compute_trip_summary(data, visit_order, data["arrival_departure_info"])
     summary_text = get_summary_from_gpt(route_text, trip_summary)
+    explanation = get_explanation_from_gpt(trip_summary, route_text)
 
     # Generate map
     visualize_route(
@@ -519,7 +558,7 @@ def run_vrptw(instruction):
         api_key=GOOGLEMAPS_API_KEY
     )
 
-    return "route_map.html", summary_text, trip_summary
+    return "route_map.html", summary_text, trip_summary, explanation
 
 
 
@@ -532,7 +571,7 @@ def main():
     #print("\nSolving route...\n")
 
     try:
-        map_file, summary, trip_summary = run_vrptw(instruction)
+        map_file, summary, trip_summary, explanation = run_vrptw(instruction)
 
         print("=== Trip Summary ===")
         for key, val in trip_summary.items():
@@ -540,6 +579,10 @@ def main():
 
         print("\n=== GPT Itinerary Summary ===")
         print(summary)
+        
+        print("\n=== GPT Explanation ===")
+        print(explanation)
+
         print(f"\n✅ Map saved to {map_file}")
 
     except Exception as e:
