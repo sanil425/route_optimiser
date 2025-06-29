@@ -26,3 +26,14 @@ I need to complete the following trip:
 - Visit Princeton University (110 West Pine Street, Princeton, NJ) for a 5 minute stop between 1000 hrs and 2100 hrs.
 - Eat dinner at Dosa Grill (1980 State Route 27 Ste 3, North Brunswick, NJ), for 1.5 hours. The restaurant is open from 1700 hrs and 2100 hrs.
 - End the trip at Columbia University (116th and Broadway, New York, NY) as early as possible.
+
+
+
+=== Scenario: Vague ===
+I want to complete the following trip:
+
+- I want to leave from Home (123 Main Street, Philadelphia, PA) at 10:00 AM.
+- Then go to the park (456 Oak Avenue, Cherry Hill, NJ) and relax there for a while.
+- After that, have lunch at Tony's Pizza (789 Pine Street, Camden, NJ).
+- Later in the evening, visit the museum (101 Art Blvd, Trenton, NJ) and spend around 2 hours there.
+- Return home as early as possible.

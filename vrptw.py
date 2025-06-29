@@ -524,7 +524,7 @@ def run_vrptw(instruction):
 
 
 def main():
-    scenario_name = "Beach Day"
+    scenario_name = "Vague"
     instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
 
     #print(f"\n=== Scenario: {scenario_name} ===")
