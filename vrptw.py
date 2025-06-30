@@ -214,7 +214,7 @@ def visualize_route(
             ).add_to(m)
 
     m.fit_bounds(route_coords, padding=(150, 150))
-    m.save("route_map.html")
+    m.save("static/route_map.html")
     print("✅ Map saved as route_map.html")
 
 

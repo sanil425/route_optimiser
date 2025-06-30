@@ -1,42 +1,43 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, render_template, request
 from vrptw import run_vrptw
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-GOOGLEMAPS_API_KEY = os.getenv("GOOGLEMAPS_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        instruction = request.form.get('instruction', '')
-        result = run_vrptw(instruction)
-        return render_template_string("""
-            <h1>Route Optimiser Result</h1>
-            <pre>{{ result }}</pre>
-            <a href="/">Back</a>
-        """, result=result)
+@app.route("/", methods=["GET", "POST"])
+def index():
+    instruction = ""
+    summary = explanation = stats = None
+    map_path = None
 
-    # GET: show input form
-    return render_template_string("""
-        <h1>Route Optimiser</h1>
-        <form method="post">
-            <label for="instruction">Enter your instruction:</label><br>
-            <input type="text" id="instruction" name="instruction" size="60" placeholder="E.g. Pick me up at 5pm"><br><br>
-            <input type="submit" value="Solve">
-        </form>
-    """)
+    if request.method == "POST":
+        instruction = request.form.get("instruction", "")
 
-@app.route('/solve', methods=['POST'])
-def solve():
-    data = request.get_json()
-    instruction = data.get("instruction", "")
-    result = run_vrptw(instruction)
-    return jsonify(result)
+        # Call your route logic
+        map_file, summary_text, trip_summary, explanation, *_ = run_vrptw(instruction)
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+        if summary_text:
+            summary = summary_text.replace("\n", "<br>")
+
+        if trip_summary:
+            stats = {
+                "total_stops": trip_summary.get("total_stops"),
+                "total_distance": round(trip_summary.get("total_distance", 0), 2),
+                "total_travel_time": trip_summary.get("total_travel_time"),
+                "total_stop_time": trip_summary.get("total_stop_time"),
+                "start_time": trip_summary.get("start_time"),
+                "end_time": trip_summary.get("end_time")
+            }
+
+        map_path = "route_map.html" if map_file else None
+
+    return render_template(
+        "index.html",
+        instruction=instruction,
+        summary=summary,
+        stats=stats,
+        explanation=explanation,
+        map_path=map_path
+    )
+
+if __name__ == "__main__":
+    app.run(debug=True)

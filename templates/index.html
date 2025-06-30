@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Route Optimiser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <h1 class="mb-4 text-center">🚚 Route Optimiser</h1>
+
+        <form method="POST">
+            <div class="mb-3">
+                <label for="instruction" class="form-label">Enter your instruction:</label>
+                <textarea class="form-control" id="instruction" name="instruction" rows="5" required>{{ instruction or "" }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Solve</button>
+        </form>
+
+        {% if summary %}
+            <hr>
+            <h3>🗺️ Route Summary</h3>
+            <div class="bg-white p-3 border rounded mb-4">
+                <p>{{ summary|safe }}</p>
+            </div>
+
+            <h4>📊 Trip Info</h4>
+            <ul class="list-group mb-4">
+                <li class="list-group-item"><strong>Total Stops:</strong> {{ stats.total_stops }}</li>
+                <li class="list-group-item"><strong>Total Distance:</strong> {{ stats.total_distance }} miles</li>
+                <li class="list-group-item"><strong>Total Travel Time:</strong> {{ stats.total_travel_time }} minutes</li>
+                <li class="list-group-item"><strong>Total Stop Time:</strong> {{ stats.total_stop_time }} minutes</li>
+                <li class="list-group-item"><strong>Start Time:</strong> {{ stats.start_time }}</li>
+                <li class="list-group-item"><strong>End Time:</strong> {{ stats.end_time }}</li>
+            </ul>
+
+            {% if map_path %}
+                <h4>📍 Map</h4>
+                <div class="mb-4">
+                    <iframe src="{{ url_for('static', filename=map_path) }}" width="100%" height="600" style="border:none;"></iframe>
+                </div>
+            {% endif %}
+
+            <h4>🤖 Explanation</h4>
+            <div class="bg-white p-3 border rounded">
+                <p>{{ explanation }}</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
