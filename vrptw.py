@@ -11,12 +11,43 @@ import polyline
 import os
 from dotenv import load_dotenv
 import json
+import openai
+import pandas as pd
+import plotly.express as px
+from datetime import datetime, timedelta
 
 load_dotenv()
 GOOGLEMAPS_API_KEY = os.getenv("GOOGLEMAPS_API_KEY")
 gmaps = googlemaps.Client(key=GOOGLEMAPS_API_KEY)
 
 # helpers 
+
+def minutes_to_datetime(minutes, base_time="2023-01-01 00:00"):
+    """Convert minutes since midnight to datetime."""
+    base = datetime.strptime(base_time, "%Y-%m-%d %H:%M")
+    return base + timedelta(minutes=minutes)
+
+def build_timeline(data, visit_order, arrival_departure_info):
+    """
+    Build a timeline DataFrame from visit order and arrival/departure info.
+    This is intended for use with Plotly timeline visualizations.
+    """
+    timeline = []
+
+    for idx in visit_order:
+        name = data["location_names"][idx]
+        arrival, departure = arrival_departure_info[idx]
+
+
+        timeline.append({
+            "Task": name,
+            "Start": minutes_to_datetime(arrival),
+            "End": minutes_to_datetime(departure),
+            "Category": "Visit"
+        })
+
+    return pd.DataFrame(timeline)
+
 def build_matrices(data, gmaps):
     """
     Adds travel time and distance matrices to the data dictionary using Google Maps.
@@ -279,6 +310,59 @@ def extract_route_text(data, manager, routing, solution):
     data["arrival_departure_info"] = arrival_departure_info
     return route_text
 
+def get_error_explanation_from_gpt(data):
+    import openai
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    def minutes_to_time(m):
+        return f"{m // 60:02d}:{m % 60:02d}"
+
+    # Build a structured view of the stops
+    stop_descriptions = []
+    for name, addr, (start, end), dur in zip(
+        data["location_names"],
+        data["location_addresses"],
+        data["time_windows"],
+        data["location_durations"]
+    ):
+        stop_descriptions.append(
+            f"{name} ({addr}): open {minutes_to_time(start)}–{minutes_to_time(end)}, stay {dur} min"
+        )
+
+    prompt = f"""
+The route optimization failed. Here are the stops and constraints provided:
+
+{chr(10).join(stop_descriptions)}
+
+Explain why a valid route could not be found. Be precise and technical.
+
+Only list specific reasons, such as:
+- Time windows that don’t allow enough time to travel between locations
+- A location not reachable in time
+- Conflicts between service duration and available time
+- Stops that are too far apart to fit within their allowed windows
+
+Name the specific stops involved. Keep your explanation to 2–3 sharp, high-precision sentences. Avoid vague or generic advice.
+"""
+
+    response = openai.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are an expert at explaining why a routing optimization failed."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.3
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+
+
 def get_summary_from_gpt(route_text, trip_summary=None):
     import openai
     from dotenv import load_dotenv
@@ -443,6 +527,7 @@ def solve_vrptw(data):
     Solves the VRPTW problem and returns the manager, routing model, and solution.
     Supports custom end location if 'custom_end_index' is provided in data.
     """
+    failed = False
     start_index = data["depot"]
     end_index = data.get("custom_end_index", start_index)
 
@@ -467,7 +552,7 @@ def solve_vrptw(data):
     transit_cb = routing.RegisterTransitCallback(time_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_cb)
 
-    # ➕ Add Time dimension
+    # Add Time dimension
     routing.AddDimension(
         transit_cb,
         10000,  # slack
@@ -514,10 +599,10 @@ def solve_vrptw(data):
 
     # Solve
     solution = routing.SolveWithParameters(search_params)
-    if not solution:
-      raise ValueError("No solution found. Check time windows and constraints.")
-    return manager, routing, solution
+    if solution is None:
+        failed = True
 
+    return manager, routing, solution, failed
 
 
 def run_vrptw(instruction):
@@ -529,7 +614,13 @@ def run_vrptw(instruction):
     # Parse, enrich, solve
     data = parse_instruction(instruction)
     build_matrices(data, gmaps)
-    manager, routing, solution = solve_vrptw(data)
+    manager, routing, solution, failed = solve_vrptw(data)
+
+    if failed:
+        error_explanation = get_error_explanation_from_gpt(data)
+        return None, None, None, None, error_explanation, None, data
+    else:
+        error_explanation = None
 
     # Extract visit order
     visit_order = []
@@ -558,7 +649,7 @@ def run_vrptw(instruction):
         api_key=GOOGLEMAPS_API_KEY
     )
 
-    return "route_map.html", summary_text, trip_summary, explanation
+    return "route_map.html", summary_text, trip_summary, explanation, None, visit_order, data
 
 
 
@@ -566,27 +657,26 @@ def main():
     scenario_name = "Vague"
     instruction = load_user_instruction("user_instruction_scenarios.txt", scenario_name)
 
-    #print(f"\n=== Scenario: {scenario_name} ===")
-    #print(instruction)
-    #print("\nSolving route...\n")
+    map_file, summary, trip_summary, explanation, error_explanation, visit_order, data = run_vrptw(instruction)
 
-    try:
-        map_file, summary, trip_summary, explanation = run_vrptw(instruction)
-
+    if error_explanation:
+        print("❌ GPT Error Explanation:")
+        print(error_explanation)
+    else:
         print("=== Trip Summary ===")
         for key, val in trip_summary.items():
             print(f"{key.replace('_', ' ').title()}: {val}")
 
         print("\n=== GPT Itinerary Summary ===")
         print(summary)
-        
+
         print("\n=== GPT Explanation ===")
         print(explanation)
 
         print(f"\n✅ Map saved to {map_file}")
 
-    except Exception as e:
-        print(f"❌ Error while solving route: {e}")
+
+
 
 
 if __name__ == "__main__":
