@@ -37,3 +37,14 @@ I want to complete the following trip:
 - After that, have lunch at Tony's Pizza (789 Pine Street, Camden, NJ).
 - Later in the evening, visit the museum (101 Art Blvd, Trenton, NJ) and spend around 2 hours there.
 - Return home as early as possible.
+
+
+
+=== Scenario: Error ===
+I want to complete the following trip:
+
+- I want to leave from Home (370 W Lancaster Ave, Haverford, PA) at 0900 hrs.
+- Visit the DMV (101 E Olney Ave, Philadelphia, PA) for 20 minutes between 0910 hrs and 0925 hrs.
+- Then go to the post office (7400 Bustleton Ave, Philadelphia, PA) for 10 minutes between 0920 hrs and 0935 hrs.
+- Stop at the pharmacy (Broad St & Girard Ave, Philadelphia, PA) for 5 minutes between 0925 hrs and 0940 hrs.
+- Return home as early as possible.
